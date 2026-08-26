@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Product Expiry Alert System</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#007bff">
+
+    <!-- QR Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>Product Expiry Alert System</h1>
+        <p class="subtitle">Scan QR and check product expiry</p>
+
+        <!-- QR Scanner -->
+        <div class="scanner-box">
+            <h2>Scan Product QR</h2>
+
+            <div id="reader"></div>
+
+            <p id="scanMessage">
+                Scan a product QR code
+            </p>
+        </div>
+
+        <!-- Product Form -->
+        <div class="form-box">
+
+            <h2>Product Details</h2>
+
+            <input type="text" id="productId"
+                   placeholder="Product ID">
+
+            <input type="text" id="productName"
+                   placeholder="Product Name">
+
+            <input type="text" id="batchNo"
+                   placeholder="Batch Number">
+
+            <input type="number" id="quantity"
+                   placeholder="Quantity">
+
+            <label>Expiry Date:</label>
+
+            <input type="date" id="expiryDate">
+
+            <button onclick="addProduct()">
+                Save Product
+            </button>
+
+        </div>
+
+
+        <!-- ======================================
+             NOTIFICATION BOX
+        ======================================= -->
+
+        <div id="notificationBox">
+
+            <h2>🔔 Notifications</h2>
+
+            <div id="notificationList">
+                No notifications
+            </div>
+
+        </div>
+
+
+        <!-- Alert -->
+        <div id="alertBox"></div>
+
+
+        <!-- Product Table -->
+        <h2>Product List</h2>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Product ID</th>
+                    <th>Product</th>
+                    <th>Batch</th>
+                    <th>Quantity</th>
+                    <th>Expiry Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody id="productTable">
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+    <script src="script.js"></script>
+
+
+    <!-- Service Worker -->
+    <script>
+
+        if ("serviceWorker" in navigator) {
+
+            window.addEventListener("load", function () {
+
+                navigator.serviceWorker
+                    .register("service-worker.js")
+
+                    .then(function () {
+
+                        console.log(
+                            "Service Worker registered"
+                        );
+
+                    })
+
+                    .catch(function (error) {
+
+                        console.log(
+                            "Service Worker error:",
+                            error
+                        );
+
+                    });
+
+            });
+
+        }
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+    "name": "Product Expiry Alert System",
+    "short_name": "Expiry Alert",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#f2f5f7",
+    "theme_color": "#007bff",
+    "icons": []
+}
