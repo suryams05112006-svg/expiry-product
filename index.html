@@ -1,142 +1,106 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Product Expiry Alert System</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wholesale Product Expiry Alert System</title>
     <link rel="stylesheet" href="style.css">
-
-    <!-- PWA -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#007bff">
-
-    <!-- QR Scanner Library -->
-    <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-
 <body>
 
     <div class="container">
+        <h1>Wholesale Product Expiry Alert System</h1>
 
-        <h1>Product Expiry Alert System</h1>
-        <p class="subtitle">Scan QR and check product expiry</p>
+        <!-- DASHBOARD -->
+        <div class="dashboard">
+            <div class="card">Total Products: <span id="totalProducts">0</span></div>
+            <div class="card">Total Stock: <span id="totalStock">0</span></div>
+            <div class="card">Total Sold: <span id="totalSold">0</span></div>
+            <div class="card">Remaining Stock: <span id="remainingStock">0</span></div>
+            <div class="card warning">Expiring Soon: <span id="expiringSoon">0</span></div>
+            <div class="card danger">Expired: <span id="expiredProducts">0</span></div>
+        </div>
 
-        <!-- QR Scanner -->
-        <div class="scanner-box">
-            <h2>Scan Product QR</h2>
-
+        <!-- QR SCANNER SECTION -->
+        <div class="qr-section">
+            <h3>📷 QR Code Scanner</h3>
             <div id="reader"></div>
-
-            <p id="scanMessage">
-                Scan a product QR code
-            </p>
+            <p id="scanMessage"></p>
         </div>
 
-        <!-- Product Form -->
+        <!-- FORM SECTION -->
         <div class="form-box">
+            <h2 id="formTitle">Add Product</h2>
+            <form id="productForm">
+                <input type="text" id="productId" placeholder="Product ID (e.g., P101)" required>
+                <input type="text" id="productName" placeholder="Product Name" required>
+                <input type="text" id="batchNo" placeholder="Batch No" required>
+                <input type="number" id="totalQuantity" placeholder="Total Quantity" min="1" required>
+                <input type="number" id="soldQuantity" placeholder="Sold Quantity" min="0" required>
+                <input type="number" id="price" placeholder="Price per Item (₹)" step="0.01" min="0" required>
+                <input type="date" id="expiryDate" required>
 
-            <h2>Product Details</h2>
-
-            <input type="text" id="productId"
-                   placeholder="Product ID">
-
-            <input type="text" id="productName"
-                   placeholder="Product Name">
-
-            <input type="text" id="batchNo"
-                   placeholder="Batch Number">
-
-            <input type="number" id="quantity"
-                   placeholder="Quantity">
-
-            <label>Expiry Date:</label>
-
-            <input type="date" id="expiryDate">
-
-            <button onclick="addProduct()">
-                Save Product
-            </button>
-
+                <!-- FIXED BUTTON ACTION -->
+                <button type="button" id="saveButton" onclick="saveProduct(event)">Save Product</button>
+                <button type="button" class="cancel" onclick="clearForm()">Clear</button>
+            </form>
+            <p id="alertBox"></p>
         </div>
 
+        <!-- FILTERS & EXPORT -->
+        <div class="controls">
+            <input type="text" id="searchInput" placeholder="Search by ID, Name, Batch..." onkeyup="renderProducts()">
+            <select id="statusFilter" onchange="renderProducts()">
+                <option value="all">All Status</option>
+                <option value="safe">Safe</option>
+                <option value="lowstock">Low Stock</option>
+                <option value="warning">Expiring Soon</option>
+                <option value="expired">Expired</option>
+            </select>
+            <button onclick="exportCSV()">📥 Export CSV</button>
+        </div>
 
-        <!-- ======================================
-             NOTIFICATION BOX
-        ======================================= -->
+        <!-- PRODUCT TABLE -->
+        <h3>Product Inventory</h3>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Product Name</th>
+                        <th>Batch</th>
+                        <th>Total</th>
+                        <th>Sold</th>
+                        <th>Remaining</th>
+                        <th>Price</th>
+                        <th>Sales Amt</th>
+                        <th>Expiry Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="productTable">
+                    <!-- Dynamic Data -->
+                </tbody>
+            </table>
+        </div>
 
-        <div id="notificationBox">
-
-            <h2>🔔 Notifications</h2>
-
-            <div id="notificationList">
-                No notifications
+        <!-- NOTIFICATION & EXPIRED LIST -->
+        <div class="alerts-container">
+            <div class="alert-card">
+                <h3>🔔 Notifications</h3>
+                <div id="notificationList">No notifications</div>
             </div>
-
+            <div class="alert-card danger-card">
+                <h3>❌ Expired Products List</h3>
+                <div id="expiredList">No expired products</div>
+            </div>
         </div>
-
-
-        <!-- Alert -->
-        <div id="alertBox"></div>
-
-
-        <!-- Product Table -->
-        <h2>Product List</h2>
-
-        <table>
-
-            <thead>
-                <tr>
-                    <th>Product ID</th>
-                    <th>Product</th>
-                    <th>Batch</th>
-                    <th>Quantity</th>
-                    <th>Expiry Date</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-
-            <tbody id="productTable">
-            </tbody>
-
-        </table>
-
     </div>
 
-
+    <!-- SCRIPT INCLUDES (Correct Order) -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="script.js"></script>
-
-
-    <!-- Service Worker -->
-    <script>
-
-        if ("serviceWorker" in navigator) {
-
-            window.addEventListener("load", function () {
-
-                navigator.serviceWorker
-                    .register("service-worker.js")
-
-                    .then(function () {
-
-                        console.log(
-                            "Service Worker registered"
-                        );
-
-                    })
-
-                    .catch(function (error) {
-
-                        console.log(
-                            "Service Worker error:",
-                            error
-                        );
-
-                    });
-
-            });
-
-        }
-
-    </script>
-
 </body>
 </html>

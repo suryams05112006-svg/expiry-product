@@ -1,625 +1,234 @@
 // ==========================================
-// PRODUCT DATA
+// PRODUCT DATA INITIALIZATION
 // ==========================================
-
 let products = JSON.parse(localStorage.getItem("products")) || [];
+let editIndex = -1;
 
-
-// ==========================================
-// NOTIFICATION PERMISSION
-// ==========================================
-
-function requestNotificationPermission() {
-
-    if ("Notification" in window) {
-
-        if (Notification.permission === "default") {
-
-            Notification.requestPermission().then(function(permission) {
-
-                if (permission === "granted") {
-
-                    console.log(
-                        "Notification permission granted"
-                    );
-
-                }
-
-            });
-
-        }
-
-    }
-
-}
-
+const LOW_STOCK_LIMIT = 50;
+const EXPIRY_ALERT_DAYS = 7;
 
 // ==========================================
-// SEND PHONE / SYSTEM NOTIFICATION
+// UTILITY FUNCTIONS
 // ==========================================
-
-function sendNotification(title, message) {
-
-    if (!("Notification" in window)) {
-        return;
-    }
-
-    if (Notification.permission !== "granted") {
-        return;
-    }
-
-
-    if ("serviceWorker" in navigator) {
-
-        navigator.serviceWorker.ready.then(function(registration) {
-
-            registration.showNotification(
-                title,
-                {
-                    body: message,
-                    vibrate: [200, 100, 200]
-                }
-            );
-
-        });
-
-    }
-
-}
-
-
-// ==========================================
-// GET DAYS LEFT
-// ==========================================
-
 function getDaysLeft(expiryDate) {
-
+    if (!expiryDate) return 0;
     const today = new Date();
-
     today.setHours(0, 0, 0, 0);
-
-
     const expiry = new Date(expiryDate);
-
     expiry.setHours(0, 0, 0, 0);
-
-
-    const difference = expiry - today;
-
-
-    return Math.ceil(
-        difference / (1000 * 60 * 60 * 24)
-    );
-
+    return Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
 }
 
-
-// ==========================================
-// SHOW PRODUCT NOTIFICATION
-// ==========================================
-
-function showExpiryNotification(product) {
-
-    const daysLeft =
-        getDaysLeft(product.expiryDate);
-
-
-    if (daysLeft < 0) {
-
-        sendNotification(
-            "Product Expiry Alert 🔔",
-            product.productName +
-            " is expired!"
-        );
-
-    }
-
-    else if (daysLeft === 0) {
-
-        sendNotification(
-            "Product Expiry Alert 🔔",
-            product.productName +
-            " expires today!"
-        );
-
-    }
-
-    else if (daysLeft <= 10) {
-
-        sendNotification(
-            "Product Expiry Alert 🔔",
-            product.productName +
-            " will expire in " +
-            daysLeft +
-            " days!"
-        );
-
-    }
-
+function getRemaining(product) {
+    return Number(product.totalQuantity || 0) - Number(product.soldQuantity || 0);
 }
 
+function getStatus(product) {
+    const days = getDaysLeft(product.expiryDate);
+    const remaining = getRemaining(product);
 
-// ==========================================
-// CHECK ALL PRODUCTS
-// ==========================================
-
-function checkAllExpiryNotifications() {
-
-    let notifications = [];
-
-
-    products.forEach(function(product) {
-
-        const daysLeft =
-            getDaysLeft(product.expiryDate);
-
-
-        // Expired
-        if (daysLeft < 0) {
-
-            notifications.push(
-                "❌ " +
-                product.productName +
-                " is expired!"
-            );
-
-        }
-
-
-        // Expires today
-        else if (daysLeft === 0) {
-
-            notifications.push(
-                "🔔 " +
-                product.productName +
-                " expires today!"
-            );
-
-        }
-
-
-        // Expiring soon
-        else if (daysLeft <= 10) {
-
-            notifications.push(
-                "⚠️ " +
-                product.productName +
-                " will expire in " +
-                daysLeft +
-                " days!"
-            );
-
-        }
-
-    });
-
-
-    // ======================================
-    // SHOW ALL NOTIFICATIONS IN BOX
-    // ======================================
-
-    const notificationList =
-        document.getElementById(
-            "notificationList"
-        );
-
-
-    if (notifications.length > 0) {
-
-        notificationList.innerHTML =
-            notifications.join("<br><br>");
-
-    }
-
-    else {
-
-        notificationList.textContent =
-            "No notifications";
-
-    }
-
+    if (days < 0) return "expired";
+    if (days <= EXPIRY_ALERT_DAYS) return "warning";
+    if (remaining <= LOW_STOCK_LIMIT) return "lowstock";
+    return "safe";
 }
 
+function statusText(product) {
+    const status = getStatus(product);
+    if (status === "expired") return "❌ Expired";
+    if (status === "warning") return "⚠️ Expiring Soon";
+    if (status === "lowstock") return "🟠 Low Stock";
+    return "✅ Safe";
+}
+
+function saveData() {
+    localStorage.setItem("products", JSON.stringify(products));
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
 
 // ==========================================
-// SAVE PRODUCT
+// SAVE / ADD PRODUCT FUNCTION
 // ==========================================
+function saveProduct(e) {
+    if (e) e.preventDefault();
 
-function addProduct() {
+    const productId = document.getElementById("productId")?.value.trim() || "";
+    const productName = document.getElementById("productName")?.value.trim() || "";
+    const batchNo = document.getElementById("batchNo")?.value.trim() || "";
+    const totalQuantity = Number(document.getElementById("totalQuantity")?.value);
+    const soldQuantity = Number(document.getElementById("soldQuantity")?.value);
+    const price = Number(document.getElementById("price")?.value);
+    const expiryDate = document.getElementById("expiryDate")?.value || "";
 
-    const productId =
-        document.getElementById(
-            "productId"
-        ).value.trim();
-
-
-    const productName =
-        document.getElementById(
-            "productName"
-        ).value.trim();
-
-
-    const batchNo =
-        document.getElementById(
-            "batchNo"
-        ).value.trim();
-
-
-    const quantity =
-        document.getElementById(
-            "quantity"
-        ).value.trim();
-
-
-    const expiryDate =
-        document.getElementById(
-            "expiryDate"
-        ).value;
-
-
-    // Check empty fields
-    if (
-        productId === "" ||
-        productName === "" ||
-        batchNo === "" ||
-        quantity === "" ||
-        expiryDate === ""
-    ) {
-
-        alert(
-            "Please enter all product details!"
-        );
-
+    // BASIC VALIDATION
+    if (!productId || !productName || !batchNo || !expiryDate || isNaN(totalQuantity) || isNaN(soldQuantity) || isNaN(price)) {
+        alert("Please fill in all product details!");
         return;
-
     }
 
-
-    // Calculate expiry days
-    const daysLeft =
-        getDaysLeft(expiryDate);
-
-
-    // Find status
-    let status;
-
-
-    if (daysLeft < 0) {
-
-        status = "❌ Expired";
-
+    if (soldQuantity > totalQuantity) {
+        alert("Sold quantity cannot exceed total quantity!");
+        return;
     }
 
-    else if (daysLeft <= 10) {
-
-        status = "⚠️ Expiring Soon";
-
-    }
-
-    else {
-
-        status = "✅ Safe";
-
-    }
-
-
-    // Create product object
     const product = {
-
-        productId: productId,
-
-        productName: productName,
-
-        batchNo: batchNo,
-
-        quantity: quantity,
-
-        expiryDate: expiryDate
-
+        productId,
+        productName,
+        batchNo,
+        totalQuantity,
+        soldQuantity,
+        price,
+        expiryDate
     };
 
-
-    // Add product
-    products.push(product);
-
-
-    // Save product
-    localStorage.setItem(
-        "products",
-        JSON.stringify(products)
-    );
-
-
-    // Display products
-    displayProducts();
-
-
-    // ======================================
-    // OLD ALERT MESSAGE
-    // ======================================
-
-    if (daysLeft < 0) {
-
-        document.getElementById(
-            "alertBox"
-        ).textContent =
-            "❌ ALERT: " +
-            productName +
-            " is expired!";
-
+    if (editIndex === -1) {
+        products.push(product);
+        alert("✅ Product Added Successfully!");
+    } else {
+        products[editIndex] = product;
+        alert("✅ Product Updated Successfully!");
+        editIndex = -1;
+        const formTitle = document.getElementById("formTitle");
+        const saveButton = document.getElementById("saveButton");
+        if (formTitle) formTitle.textContent = "Add Product";
+        if (saveButton) saveButton.textContent = "Save Product";
     }
 
-    else if (daysLeft === 0) {
-
-        document.getElementById(
-            "alertBox"
-        ).textContent =
-            "🔔 ALERT: " +
-            productName +
-            " expires today!";
-
-    }
-
-    else if (daysLeft <= 10) {
-
-        document.getElementById(
-            "alertBox"
-        ).textContent =
-            "⚠️ ALERT: " +
-            productName +
-            " will expire in " +
-            daysLeft +
-            " days!";
-
-    }
-
-    else {
-
-        document.getElementById(
-            "alertBox"
-        ).textContent =
-            "✅ Product added successfully!";
-
-    }
-
-
-    // ======================================
-    // PHONE NOTIFICATION
-    // ======================================
-
-    showExpiryNotification(product);
-
-
-    // ======================================
-    // CLEAR INPUTS
-    // ======================================
-
-    document.getElementById(
-        "productId"
-    ).value = "";
-
-    document.getElementById(
-        "productName"
-    ).value = "";
-
-    document.getElementById(
-        "batchNo"
-    ).value = "";
-
-    document.getElementById(
-        "quantity"
-    ).value = "";
-
-    document.getElementById(
-        "expiryDate"
-    ).value = "";
-
-
-    // ======================================
-    // UPDATE NOTIFICATION BOX
-    // ======================================
-
-    checkAllExpiryNotifications();
-
+    saveData();
+    clearForm();
+    updateAll();
 }
 
+// ==========================================
+// EDIT & DELETE
+// ==========================================
+function editProduct(index) {
+    const product = products[index];
+    if (!product) return;
+    
+    editIndex = index;
+
+    document.getElementById("productId").value = product.productId;
+    document.getElementById("productName").value = product.productName;
+    document.getElementById("batchNo").value = product.batchNo;
+    document.getElementById("totalQuantity").value = product.totalQuantity;
+    document.getElementById("soldQuantity").value = product.soldQuantity;
+    document.getElementById("price").value = product.price;
+    document.getElementById("expiryDate").value = product.expiryDate;
+
+    document.getElementById("formTitle").textContent = "Edit Product";
+    document.getElementById("saveButton").textContent = "Update Product";
+}
+
+function deleteProduct(index) {
+    if (confirm("Are you sure you want to delete this product?")) {
+        products.splice(index, 1);
+        saveData();
+        updateAll();
+    }
+}
+
+function clearForm() {
+    const form = document.getElementById("productForm");
+    if (form) form.reset();
+    editIndex = -1;
+    const formTitle = document.getElementById("formTitle");
+    const saveButton = document.getElementById("saveButton");
+    if (formTitle) formTitle.textContent = "Add Product";
+    if (saveButton) saveButton.textContent = "Save Product";
+}
 
 // ==========================================
-// DISPLAY PRODUCTS
+// DISPLAY DATA IN TABLE & DASHBOARD
 // ==========================================
-
-function displayProducts() {
-
-    const table =
-        document.getElementById(
-            "productTable"
-        );
-
+function renderProducts() {
+    const table = document.getElementById("productTable");
+    if (!table) return;
+    
+    const search = document.getElementById("searchInput")?.value.toLowerCase().trim() || "";
+    const filter = document.getElementById("statusFilter")?.value || "all";
 
     table.innerHTML = "";
 
+    products.forEach(function (product, index) {
+        const matchesSearch =
+            product.productId.toLowerCase().includes(search) ||
+            product.productName.toLowerCase().includes(search) ||
+            product.batchNo.toLowerCase().includes(search);
 
-    products.forEach(function(product) {
+        const status = getStatus(product);
+        const matchesFilter = filter === "all" || filter === status;
 
-        const row =
-            table.insertRow();
+        if (!matchesSearch || !matchesFilter) return;
 
+        const row = table.insertRow();
+        const remaining = getRemaining(product);
+        const salesAmount = Number(product.soldQuantity) * Number(product.price);
 
-        row.insertCell(0).textContent =
-            product.productId;
+        row.insertCell(0).textContent = product.productId;
+        row.insertCell(1).textContent = product.productName;
+        row.insertCell(2).textContent = product.batchNo;
+        row.insertCell(3).textContent = product.totalQuantity;
+        row.insertCell(4).textContent = product.soldQuantity;
+        row.insertCell(5).textContent = remaining;
+        row.insertCell(6).textContent = "₹" + Number(product.price).toFixed(2);
+        row.insertCell(7).textContent = "₹" + salesAmount.toFixed(2);
+        row.insertCell(8).textContent = product.expiryDate;
+        
+        const statusCell = row.insertCell(9);
+        statusCell.textContent = statusText(product);
 
+        const actionCell = row.insertCell(10);
+        actionCell.innerHTML = `
+            <button onclick="editProduct(${index})">✏️ Edit</button>
+            <button onclick="deleteProduct(${index})">🗑️ Delete</button>
+        `;
+    });
+}
 
-        row.insertCell(1).textContent =
-            product.productName;
+function updateDashboard() {
+    let totalStock = 0, totalSold = 0, remainingStock = 0, expiringSoon = 0, expired = 0;
 
+    products.forEach(function (product) {
+        totalStock += Number(product.totalQuantity || 0);
+        totalSold += Number(product.soldQuantity || 0);
+        remainingStock += getRemaining(product);
 
-        row.insertCell(2).textContent =
-            product.batchNo;
-
-
-        row.insertCell(3).textContent =
-            product.quantity;
-
-
-        row.insertCell(4).textContent =
-            product.expiryDate;
-
-
-        const daysLeft =
-            getDaysLeft(
-                product.expiryDate
-            );
-
-
-        let status;
-
-
-        if (daysLeft < 0) {
-
-            status = "❌ Expired";
-
-        }
-
-        else if (daysLeft <= 10) {
-
-            status = "⚠️ Expiring Soon";
-
-        }
-
-        else {
-
-            status = "✅ Safe";
-
-        }
-
-
-        row.insertCell(5).textContent =
-            status;
-
+        const days = getDaysLeft(product.expiryDate);
+        if (days < 0) expired++;
+        else if (days <= EXPIRY_ALERT_DAYS) expiringSoon++;
     });
 
+    if(document.getElementById("totalProducts")) document.getElementById("totalProducts").textContent = products.length;
+    if(document.getElementById("totalStock")) document.getElementById("totalStock").textContent = totalStock;
+    if(document.getElementById("totalSold")) document.getElementById("totalSold").textContent = totalSold;
+    if(document.getElementById("remainingStock")) document.getElementById("remainingStock").textContent = remainingStock;
+    if(document.getElementById("expiringSoon")) document.getElementById("expiringSoon").textContent = expiringSoon;
+    if(document.getElementById("expiredProducts")) document.getElementById("expiredProducts").textContent = expired;
 }
 
-
-// ==========================================
-// QR CODE SCANNER
-// ==========================================
-
-function onScanSuccess(decodedText) {
-
-    /*
-       QR Code format:
-
-       P001,Milk,B101,10,2026-09-10
-    */
-
-
-    const data =
-        decodedText.split(",");
-
-
-    if (data.length === 5) {
-
-        document.getElementById(
-            "productId"
-        ).value = data[0];
-
-
-        document.getElementById(
-            "productName"
-        ).value = data[1];
-
-
-        document.getElementById(
-            "batchNo"
-        ).value = data[2];
-
-
-        document.getElementById(
-            "quantity"
-        ).value = data[3];
-
-
-        document.getElementById(
-            "expiryDate"
-        ).value = data[4];
-
-
-        document.getElementById(
-            "scanMessage"
-        ).textContent =
-            "✅ QR scanned successfully!";
-
-    }
-
-    else {
-
-        document.getElementById(
-            "scanMessage"
-        ).textContent =
-            "❌ Invalid QR Code!";
-
-    }
-
+function updateAll() {
+    renderProducts();
+    updateDashboard();
 }
 
-
 // ==========================================
-// QR SCAN ERROR
+// INITIALIZE EVENT LISTENERS SAFELY
 // ==========================================
+document.addEventListener("DOMContentLoaded", function () {
+    updateAll();
 
-function onScanError(error) {
-
-    // Scanner continuously checks for QR code
-
-}
-
-
-// ==========================================
-// START QR SCANNER
-// ==========================================
-
-const scanner =
-    new Html5QrcodeScanner(
-        "reader",
-        {
-            fps: 10,
-            qrbox: 250
-        }
-    );
-
-
-scanner.render(
-    onScanSuccess,
-    onScanError
-);
-
-
-// ==========================================
-// LOAD OLD PRODUCTS
-// ==========================================
-
-window.addEventListener(
-    "load",
-    function() {
-
-        // Request notification permission
-        requestNotificationPermission();
-
-
-        // Display old products
-        displayProducts();
-
-
-        // Check all old products
-        setTimeout(
-            function() {
-
-                checkAllExpiryNotifications();
-
-            },
-            1000
-        );
-
+    // Attach Event Handler to Button Direct-ah
+    const saveBtn = document.getElementById("saveButton");
+    if (saveBtn) {
+        saveBtn.onclick = saveProduct;
     }
-);
+});
