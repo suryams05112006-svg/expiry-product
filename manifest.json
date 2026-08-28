@@ -1,5 +1,5 @@
 {
-  "name": "Wholesale Product Expiry Alert System",
+  "name": "expiry alert system",
   "short_name": "Expiry Alert",
   "description": "Product stock, sales and expiry alert management system.",
   "start_url": "./",
