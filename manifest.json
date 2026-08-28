@@ -1,11 +1,11 @@
 {
-    "name": "Wholesale Product Expiry Alert System",
-    "short_name": "Expiry Alert",
-    "description": "Product stock, sales and expiry alert management system.",
-    "start_url": "./index.html",
-    "scope": "./",
-    "display": "standalone",
-    "background_color": "#f5f7ff",
-    "theme_color": "#5b4bff",
-    "orientation": "portrait"
+  "name": "Wholesale Product Expiry Alert System",
+  "short_name": "Expiry Alert",
+  "description": "Product stock, sales and expiry alert management system.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f7ff",
+  "theme_color": "#6c5ce7",
+  "orientation": "portrait"
 }
