@@ -1,10 +1,47 @@
+const CACHE_NAME =
+    "expiry-alert-system-v5";
+
+
+const FILES_TO_CACHE = [
+
+    "./",
+
+    "./index.html",
+
+    "./style.css",
+
+    "./script.js",
+
+    "./manifest.json"
+
+];
+
+
+/* =====================================================
+   INSTALL
+===================================================== */
+
 self.addEventListener(
     "install",
-    function () {
+    function (event) {
 
-        console.log(
-            "Service Worker Installed"
+        event.waitUntil(
+
+            caches.open(
+                CACHE_NAME
+            )
+            .then(
+                function (cache) {
+
+                    return cache.addAll(
+                        FILES_TO_CACHE
+                    );
+
+                }
+            )
+
         );
+
 
         self.skipWaiting();
 
@@ -12,13 +49,48 @@ self.addEventListener(
 );
 
 
+/* =====================================================
+   ACTIVATE
+===================================================== */
+
 self.addEventListener(
     "activate",
-    function () {
+    function (event) {
 
-        console.log(
-            "Service Worker Activated"
+        event.waitUntil(
+
+            caches.keys()
+                .then(
+                    function (cacheNames) {
+
+                        return Promise.all(
+
+                            cacheNames
+                                .filter(
+                                    function (name) {
+
+                                        return name !==
+                                            CACHE_NAME;
+
+                                    }
+                                )
+                                .map(
+                                    function (name) {
+
+                                        return caches.delete(
+                                            name
+                                        );
+
+                                    }
+                                )
+
+                        );
+
+                    }
+                )
+
         );
+
 
         self.clients.claim();
 
@@ -26,46 +98,198 @@ self.addEventListener(
 );
 
 
-// ==========================================
-// PUSH NOTIFICATION
-// ==========================================
+/* =====================================================
+   FETCH
+===================================================== */
+
+self.addEventListener(
+    "fetch",
+    function (event) {
+
+        /*
+           HTML / CSS / JS files should try
+           network first so new code loads.
+        */
+
+        if (
+            event.request.method !==
+            "GET"
+        ) {
+
+            return;
+
+        }
+
+
+        event.respondWith(
+
+            fetch(
+                event.request
+            )
+            .then(
+                function (response) {
+
+                    const copy =
+                        response.clone();
+
+
+                    caches.open(
+                        CACHE_NAME
+                    )
+                    .then(
+                        function (cache) {
+
+                            cache.put(
+                                event.request,
+                                copy
+                            );
+
+                        }
+                    );
+
+
+                    return response;
+
+                }
+            )
+            .catch(
+                function () {
+
+                    return caches.match(
+                        event.request
+                    );
+
+                }
+            )
+
+        );
+
+    }
+);
+
+
+/* =====================================================
+   PUSH
+===================================================== */
 
 self.addEventListener(
     "push",
     function (event) {
 
-        const data =
-            event.data
-                ? event.data.json()
-                : {
-                    title:
-                        "Product Expiry Alert 🔔",
+        let data = {
 
-                    body:
-                        "A product is going to expire!"
-                };
+            title:
+                "Expiry Product Alert",
+
+            body:
+                "A product needs your attention."
+
+        };
+
+
+        if (event.data) {
+
+            try {
+
+                data =
+                    event.data.json();
+
+            }
+
+            catch (error) {
+
+                data.body =
+                    event.data.text();
+
+            }
+
+        }
 
 
         event.waitUntil(
 
-            self.registration.showNotification(
+            self.registration
+                .showNotification(
+                    data.title,
+                    {
 
-                data.title,
+                        body:
+                            data.body,
 
-                {
-                    body:
-                        data.body,
+                        tag:
+                            "expiry-alert",
 
-                    icon:
-                        "./icon-192.png",
+                        requireInteraction:
+                            true,
 
-                    badge:
-                        "./icon-192.png",
+                        vibrate:
+                            [
+                                200,
+                                100,
+                                200
+                            ]
 
-                    vibrate:
-                        [200, 100, 200]
+                    }
+                )
+
+        );
+
+    }
+);
+
+
+/* =====================================================
+   NOTIFICATION CLICK
+===================================================== */
+
+self.addEventListener(
+    "notificationclick",
+    function (event) {
+
+        event.notification.close();
+
+
+        event.waitUntil(
+
+            clients.matchAll({
+
+                type:
+                    "window",
+
+                includeUncontrolled:
+                    true
+
+            })
+            .then(
+                function (clientList) {
+
+                    for (
+                        const client
+                        of clientList
+                    ) {
+
+                        if (
+                            "focus" in client
+                        ) {
+
+                            return client.focus();
+
+                        }
+
+                    }
+
+
+                    if (
+                        clients.openWindow
+                    ) {
+
+                        return clients.openWindow(
+                            "./index.html"
+                        );
+
+                    }
+
                 }
-
             )
 
         );
