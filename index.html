@@ -20,11 +20,13 @@
 
     <link rel="manifest" href="manifest.json">
 
+    <!-- QR + BARCODE SCANNER -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 </head>
 
 <body>
+
 
 <!-- =====================================================
      LOGIN
@@ -48,17 +50,25 @@
         </p>
 
         <div class="welcome-box">
-            <strong>Welcome Back 👋</strong>
+
+            <strong>
+                Welcome Back 👋
+            </strong>
+
             <small>
                 Login to manage your products
             </small>
+
         </div>
+
 
         <form id="loginForm">
 
             <div class="input-group">
 
-                <label>Username</label>
+                <label>
+                    Username
+                </label>
 
                 <div class="input-wrapper">
 
@@ -76,9 +86,12 @@
 
             </div>
 
+
             <div class="input-group">
 
-                <label>Password</label>
+                <label>
+                    Password
+                </label>
 
                 <div class="input-wrapper">
 
@@ -105,17 +118,23 @@
 
             </div>
 
+
             <button
                 type="submit"
                 class="login-button">
 
-                <span>Login to Dashboard</span>
+                <span>
+                    Login to Dashboard
+                </span>
 
-                <span>→</span>
+                <span>
+                    →
+                </span>
 
             </button>
 
         </form>
+
 
         <div class="login-footer">
 
@@ -133,11 +152,15 @@
 </section>
 
 
+
 <!-- =====================================================
      APPLICATION
 ===================================================== -->
 
-<div id="appPage" class="app-page hidden">
+<div
+    id="appPage"
+    class="app-page hidden">
+
 
     <!-- HEADER -->
 
@@ -163,6 +186,7 @@
 
         </div>
 
+
         <button
             id="notificationBtn"
             class="notification-button">
@@ -176,6 +200,7 @@
     </header>
 
 
+
     <main>
 
 
@@ -186,6 +211,7 @@
         <section
             id="dashboardSection"
             class="page-section">
+
 
             <div class="page-heading">
 
@@ -208,9 +234,11 @@
             </div>
 
 
+
             <!-- STAT CARDS -->
 
             <div class="stats-grid">
+
 
                 <div class="stat-card purple-card">
 
@@ -231,6 +259,7 @@
                     </div>
 
                 </div>
+
 
 
                 <div class="stat-card blue-card">
@@ -254,6 +283,7 @@
                 </div>
 
 
+
                 <div class="stat-card orange-card">
 
                     <div class="stat-icon">
@@ -273,6 +303,7 @@
                     </div>
 
                 </div>
+
 
 
                 <div class="stat-card red-card">
@@ -298,7 +329,8 @@
             </div>
 
 
-            <!-- QR BANNER -->
+
+            <!-- SCANNER BANNER -->
 
             <div class="qr-banner">
 
@@ -309,12 +341,12 @@
                     </span>
 
                     <h2>
-                        Scan Product QR
+                        Scan Barcode / QR
                     </h2>
 
                     <p>
-                        Quickly find product details
-                        using QR code.
+                        Scan any supported product
+                        Barcode or QR code.
                     </p>
 
                     <button
@@ -322,7 +354,10 @@
                         onclick="openPage('scanner')">
 
                         📷 Scan Now
-                        <span>→</span>
+
+                        <span>
+                            →
+                        </span>
 
                     </button>
 
@@ -338,6 +373,7 @@
                 </div>
 
             </div>
+
 
 
             <!-- QUICK ACTIONS -->
@@ -359,7 +395,9 @@
             </div>
 
 
+
             <div class="quick-grid">
+
 
                 <button
                     class="quick-card"
@@ -378,6 +416,7 @@
                     </small>
 
                 </button>
+
 
 
                 <button
@@ -399,6 +438,7 @@
                 </button>
 
 
+
                 <button
                     class="quick-card"
                     onclick="openPage('alerts')">
@@ -418,6 +458,7 @@
                 </button>
 
 
+
                 <button
                     class="quick-card"
                     onclick="openPage('history')">
@@ -435,6 +476,7 @@
                     </small>
 
                 </button>
+
 
 
                 <button
@@ -458,6 +500,7 @@
             </div>
 
 
+
             <!-- RECENT -->
 
             <div class="content-title recent-title">
@@ -473,6 +516,7 @@
                     </p>
 
                 </div>
+
 
                 <button
                     class="view-button"
@@ -494,32 +538,37 @@
         </section>
 
 
+
         <!-- =================================================
-             SCANNER
+             BARCODE + QR SCANNER
         ================================================== -->
 
         <section
             id="scannerSection"
             class="page-section hidden">
 
+
             <div class="page-heading">
 
                 <span class="heading-label">
-                    QR CODE
+                    BARCODE / QR
                 </span>
 
                 <h1>
-                    QR Scanner
+                    Product Scanner
                 </h1>
 
                 <p>
-                    Scan a product QR code
+                    Scan Barcode or QR code
+                    to get product information
                 </p>
 
             </div>
 
 
+
             <div class="scanner-card">
+
 
                 <div class="scanner-header">
 
@@ -530,11 +579,12 @@
                     <div>
 
                         <h2>
-                            Product Scanner
+                            Barcode & QR Scanner
                         </h2>
 
                         <p>
-                            Place QR code inside the frame
+                            Place Barcode or QR code
+                            inside the frame
                         </p>
 
                     </div>
@@ -542,18 +592,24 @@
                 </div>
 
 
+
+                <!-- CAMERA -->
+
                 <div id="reader"></div>
 
 
+
                 <div class="scanner-buttons">
+
 
                     <button
                         id="startScannerBtn"
                         class="primary-button">
 
-                        📷 Start Camera
+                        📷 Start Scanner
 
                     </button>
+
 
                     <button
                         id="stopScannerBtn"
@@ -566,30 +622,39 @@
                 </div>
 
 
+
                 <p
                     id="scannerMessage"
                     class="scanner-message">
 
-                    Click Start Camera to open camera.
+                    Click Start Scanner to scan
+                    Barcode or QR code.
 
                 </p>
 
             </div>
 
 
+
+            <!-- RESULT -->
+
             <div
                 id="scanResult"
                 class="scan-result hidden">
 
+
                 <div class="result-title">
-                    ✅ Product Found
+                    ✅ Scan Successful
                 </div>
 
-                <p id="scanText"></p>
+
+                <div id="scanText"></div>
+
 
             </div>
 
         </section>
+
 
 
         <!-- =================================================
@@ -599,6 +664,7 @@
         <section
             id="productsSection"
             class="page-section hidden">
+
 
             <div class="page-heading product-heading">
 
@@ -623,7 +689,10 @@
                     class="add-product-button"
                     onclick="openAddProduct()">
 
-                    <span>+</span>
+                    <span>
+                        +
+                    </span>
+
                     Add Product
 
                 </button>
@@ -631,9 +700,12 @@
             </div>
 
 
+
             <div class="search-box">
 
-                <span>🔍</span>
+                <span>
+                    🔍
+                </span>
 
                 <input
                     type="text"
@@ -644,7 +716,9 @@
             </div>
 
 
+
             <div class="filter-row">
+
 
                 <button
                     class="filter-btn active"
@@ -654,6 +728,7 @@
 
                 </button>
 
+
                 <button
                     class="filter-btn"
                     data-filter="good">
@@ -661,6 +736,7 @@
                     Good
 
                 </button>
+
 
                 <button
                     class="filter-btn"
@@ -670,6 +746,7 @@
 
                 </button>
 
+
                 <button
                     class="filter-btn"
                     data-filter="expired">
@@ -677,6 +754,7 @@
                     Expired
 
                 </button>
+
 
                 <button
                     class="filter-btn"
@@ -689,6 +767,7 @@
             </div>
 
 
+
             <div
                 id="productList"
                 class="product-list">
@@ -698,6 +777,7 @@
         </section>
 
 
+
         <!-- =================================================
              ALERTS
         ================================================== -->
@@ -705,6 +785,7 @@
         <section
             id="alertsSection"
             class="page-section hidden">
+
 
             <div class="page-heading">
 
@@ -732,6 +813,7 @@
         </section>
 
 
+
         <!-- =================================================
              HISTORY
         ================================================== -->
@@ -739,6 +821,7 @@
         <section
             id="historySection"
             class="page-section hidden">
+
 
             <div class="page-heading">
 
@@ -769,18 +852,25 @@
     </main>
 
 
+
     <!-- =================================================
          BOTTOM NAV
     ================================================== -->
 
     <nav class="bottom-nav">
 
+
         <button
             class="nav-btn active"
             data-page="dashboard">
 
-            <span>🏠</span>
-            <small>Home</small>
+            <span>
+                🏠
+            </span>
+
+            <small>
+                Home
+            </small>
 
         </button>
 
@@ -789,8 +879,13 @@
             class="nav-btn"
             data-page="scanner">
 
-            <span>📷</span>
-            <small>Scan</small>
+            <span>
+                📷
+            </span>
+
+            <small>
+                Scan
+            </small>
 
         </button>
 
@@ -808,8 +903,13 @@
             class="nav-btn"
             data-page="products">
 
-            <span>📦</span>
-            <small>Products</small>
+            <span>
+                📦
+            </span>
+
+            <small>
+                Products
+            </small>
 
         </button>
 
@@ -818,8 +918,13 @@
             class="nav-btn"
             data-page="alerts">
 
-            <span>🔔</span>
-            <small>Alerts</small>
+            <span>
+                🔔
+            </span>
+
+            <small>
+                Alerts
+            </small>
 
         </button>
 
@@ -828,12 +933,18 @@
             class="nav-btn"
             data-page="history">
 
-            <span>📜</span>
-            <small>History</small>
+            <span>
+                📜
+            </span>
+
+            <small>
+                History
+            </small>
 
         </button>
 
     </nav>
+
 
 
     <!-- LOGOUT -->
@@ -846,20 +957,25 @@
 
     </button>
 
+
 </div>
 
 
+
 <!-- =====================================================
-     ADD / EDIT MODAL
+     ADD / EDIT PRODUCT MODAL
 ===================================================== -->
 
 <div
     id="productModal"
     class="modal hidden">
 
+
     <div class="modal-box">
 
+
         <div class="modal-header">
+
 
             <div>
 
@@ -877,6 +993,7 @@
 
             </div>
 
+
             <button
                 onclick="closeProductModal()"
                 class="close-button">
@@ -888,7 +1005,9 @@
         </div>
 
 
+
         <form id="productForm">
+
 
             <input
                 type="hidden"
@@ -912,23 +1031,26 @@
             </div>
 
 
+
             <div class="input-group">
 
                 <label>
-                    Product ID / QR Code
+                    Product ID / QR / Barcode
                 </label>
 
                 <input
                     type="text"
                     id="productCode"
-                    placeholder="Example: MP1001"
+                    placeholder="Scan or enter product code"
                     required
                 >
 
             </div>
 
 
+
             <div class="two-inputs">
+
 
                 <div class="input-group">
 
@@ -965,6 +1087,7 @@
             </div>
 
 
+
             <div class="input-group">
 
                 <label>
@@ -978,6 +1101,7 @@
                 >
 
             </div>
+
 
 
             <button
@@ -995,6 +1119,7 @@
 </div>
 
 
+
 <!-- =====================================================
      SELL MODAL
 ===================================================== -->
@@ -1003,9 +1128,12 @@
     id="sellModal"
     class="modal hidden">
 
+
     <div class="modal-box small-modal">
 
+
         <div class="modal-header">
+
 
             <div>
 
@@ -1023,6 +1151,7 @@
 
             </div>
 
+
             <button
                 onclick="closeSellModal()"
                 class="close-button">
@@ -1032,6 +1161,7 @@
             </button>
 
         </div>
+
 
 
         <div class="available-stock">
@@ -1045,6 +1175,7 @@
             </strong>
 
         </div>
+
 
 
         <div class="input-group">
@@ -1063,6 +1194,7 @@
         </div>
 
 
+
         <button
             id="confirmSellBtn"
             class="save-button">
@@ -1076,7 +1208,10 @@
 </div>
 
 
-<!-- TOAST -->
+
+<!-- =====================================================
+     TOAST
+===================================================== -->
 
 <div
     id="toast"
@@ -1093,7 +1228,9 @@
 </div>
 
 
+
 <script src="script.js"></script>
 
 </body>
+
 </html>
