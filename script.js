@@ -15,7 +15,6 @@ let toastTimer = null;
 let lastScannedValue = "";
 let lastScanTime = 0;
 
-
 /* =====================================================
    LOAD PRODUCTS
 ===================================================== */
