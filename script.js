@@ -1,141 +1,318 @@
 /* =====================================================
    WHOLESALE PRODUCT EXPIRY ALERT SYSTEM
-   FULL JAVASCRIPT - QR + BARCODE SCANNER
 ===================================================== */
 
 const LOW_STOCK_LIMIT = 10;
 const EXPIRY_ALERT_DAYS = 7;
 
 let products = [];
+let salesHistory = [];
+
 let currentFilter = "all";
+
 let scanner = null;
 let scannerRunning = false;
+
 let sellingProductId = null;
+
 let toastTimer = null;
-let lastScannedValue = "";
-let lastScanTime = 0;
+
+let lastScannedProduct = null;
+
 
 /* =====================================================
-   LOAD PRODUCTS
+   STORAGE
 ===================================================== */
 
 function loadProducts() {
+
     try {
-        const saved = localStorage.getItem("expiryProducts");
-        products = saved ? JSON.parse(saved) : [];
-        if (!Array.isArray(products)) products = [];
+        products =
+            JSON.parse(
+                localStorage.getItem("expiryProducts")
+            ) || [];
     } catch (error) {
-        console.error("Product load error:", error);
         products = [];
     }
-}
 
-
-/* =====================================================
-   SAVE PRODUCTS
-===================================================== */
-
-function saveProducts() {
     try {
-        localStorage.setItem("expiryProducts", JSON.stringify(products));
-        return true;
+        salesHistory =
+            JSON.parse(
+                localStorage.getItem("salesHistory")
+            ) || [];
     } catch (error) {
-        console.error("Product save error:", error);
-        showToast("Unable to save product", "❌");
-        return false;
+        salesHistory = [];
     }
 }
 
 
-/* =====================================================
-   PAGE LOAD
-===================================================== */
+function saveProducts() {
 
-document.addEventListener("DOMContentLoaded", function () {
-    loadProducts();
-
-    setupLogin();
-    setupNavigation();
-    setupProductForm();
-    setupSearch();
-    setupFilters();
-    setupScannerButtons();
-    setupLogout();
-    setupNotificationButton();
-    setupPasswordToggle();
-
-    updateAll();
-    registerServiceWorker();
-    checkExpiryAlerts();
-
-    setInterval(checkExpiryAlerts, 60000);
-});
-
-
-/* =====================================================
-   PASSWORD TOGGLE
-===================================================== */
-
-function setupPasswordToggle() {
-    const button = document.getElementById("togglePassword");
-    const password = document.getElementById("password");
-
-    if (!button || !password) return;
-
-    button.addEventListener("click", function () {
-        if (password.type === "password") {
-            password.type = "text";
-            button.textContent = "🙈";
-        } else {
-            password.type = "password";
-            button.textContent = "👁️";
-        }
-    });
+    localStorage.setItem(
+        "expiryProducts",
+        JSON.stringify(products)
+    );
 }
 
 
+function saveSalesHistory() {
+
+    localStorage.setItem(
+        "salesHistory",
+        JSON.stringify(salesHistory)
+    );
+}
+
+
+/* =====================================================
+   HELPERS
+===================================================== */
+
+function generateId() {
+
+    return Date.now().toString() +
+        Math.random()
+            .toString(36)
+            .substring(2, 8);
+}
+
+
+function getToday() {
+
+    return new Date()
+        .toISOString()
+        .split("T")[0];
+}
+
+
+function getDaysUntilExpiry(expiryDate) {
+
+    if (!expiryDate) return 9999;
+
+    const today = new Date();
+    const expiry = new Date(expiryDate);
+
+    today.setHours(0, 0, 0, 0);
+    expiry.setHours(0, 0, 0, 0);
+
+    return Math.ceil(
+        (expiry - today) /
+        (1000 * 60 * 60 * 24)
+    );
+}
+
+
+function getAvailableStock(product) {
+
+    const total =
+        Number(product.totalQuantity || 0);
+
+    const sold =
+        Number(product.soldQuantity || 0);
+
+    return Math.max(0, total - sold);
+}
+
+
+function escapeHTML(value) {
+
+    const div =
+        document.createElement("div");
+
+    div.textContent =
+        value == null ? "" : String(value);
+
+    return div.innerHTML;
+}
+
+
+/* =====================================================
+   TOAST
+===================================================== */
+
+function showToast(
+    message,
+    type = "success"
+) {
+
+    const toast =
+        document.getElementById("toast");
+
+    const text =
+        document.getElementById("toastText");
+
+    const icon =
+        document.getElementById("toastIcon");
+
+    if (!toast || !text) {
+
+        alert(message);
+        return;
+    }
+
+    text.textContent = message;
+
+    if (icon) {
+
+        if (type === "error") {
+            icon.textContent = "❌";
+        }
+        else if (type === "warning") {
+            icon.textContent = "⚠️";
+        }
+        else {
+            icon.textContent = "✅";
+        }
+    }
+
+    toast.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer = setTimeout(
+        function () {
+            toast.classList.remove("show");
+        },
+        3000
+    );
+}
+
+
+/* =====================================================
+   REFRESH
+===================================================== */
+
+function refreshAll() {
+
+    loadProducts();
+
+    updateDashboard();
+    renderProducts();
+    renderAlerts();
+    renderHistory();
+}
 /* =====================================================
    LOGIN
 ===================================================== */
 
 function setupLogin() {
-    const loginForm = document.getElementById("loginForm");
-    if (!loginForm) return;
 
-    loginForm.addEventListener("submit", function (event) {
-        event.preventDefault();
+    const form =
+        document.getElementById("loginForm");
 
-        const username = document.getElementById("username")?.value.trim() || "";
-        const password = document.getElementById("password")?.value.trim() || "";
+    if (!form) return;
 
-        if (!username || !password) {
-            showToast("Enter username and password", "⚠️");
-            return;
+    form.addEventListener(
+        "submit",
+        function (event) {
+
+            event.preventDefault();
+
+            const username =
+                document
+                    .getElementById("username")
+                    .value
+                    .trim();
+
+            const password =
+                document
+                    .getElementById("password")
+                    .value
+                    .trim();
+
+            if (!username || !password) {
+
+                showToast(
+                    "Please enter username and password",
+                    "error"
+                );
+
+                return;
+            }
+
+            sessionStorage.setItem(
+                "loggedInUser",
+                username
+            );
+
+            showApp(username);
         }
+    );
 
-        sessionStorage.setItem("loggedIn", "true");
-        sessionStorage.setItem("loggedUsername", username);
-        openApplication(username);
-    });
 
-    if (sessionStorage.getItem("loggedIn") === "true") {
-        openApplication(
-            sessionStorage.getItem("loggedUsername") || "User"
+    const toggle =
+        document.getElementById(
+            "togglePassword"
+        );
+
+    if (toggle) {
+
+        toggle.addEventListener(
+            "click",
+            function () {
+
+                const password =
+                    document.getElementById(
+                        "password"
+                    );
+
+                password.type =
+                    password.type === "password"
+                        ? "text"
+                        : "password";
+            }
         );
     }
 }
 
 
 /* =====================================================
-   OPEN APPLICATION
+   SHOW APP
 ===================================================== */
 
-function openApplication(username) {
-    document.getElementById("loginPage")?.classList.add("hidden");
-    document.getElementById("appPage")?.classList.remove("hidden");
+function showApp(username) {
 
-    setText("welcomeUser", username);
-    updateAll();
+    const login =
+        document.getElementById("loginPage");
+
+    const app =
+        document.getElementById("appPage");
+
+    if (login) {
+        login.style.display = "none";
+    }
+
+    if (app) {
+        app.style.display = "block";
+    }
+
+    const welcome =
+        document.getElementById("welcomeUser");
+
+    if (welcome) {
+        welcome.textContent =
+            "Welcome, " + username;
+    }
+
+    refreshAll();
+}
+
+
+function showLogin() {
+
+    const login =
+        document.getElementById("loginPage");
+
+    const app =
+        document.getElementById("appPage");
+
+    if (login) {
+        login.style.display = "block";
+    }
+
+    if (app) {
+        app.style.display = "none";
+    }
 }
 
 
@@ -144,15 +321,25 @@ function openApplication(username) {
 ===================================================== */
 
 function setupLogout() {
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (!logoutBtn) return;
 
-    logoutBtn.addEventListener("click", async function () {
-        sessionStorage.removeItem("loggedIn");
-        sessionStorage.removeItem("loggedUsername");
-        await stopScanner();
-        location.reload();
-    });
+    const button =
+        document.getElementById("logoutBtn");
+
+    if (!button) return;
+
+    button.addEventListener(
+        "click",
+        function () {
+
+            sessionStorage.removeItem(
+                "loggedInUser"
+            );
+
+            stopScanner();
+
+            showLogin();
+        }
+    );
 }
 
 
@@ -161,496 +348,438 @@ function setupLogout() {
 ===================================================== */
 
 function setupNavigation() {
-    document.querySelectorAll(".nav-btn").forEach(function (button) {
-        button.addEventListener("click", function () {
-            openPage(button.dataset.page);
-        });
-    });
+
+    const buttons =
+        document.querySelectorAll(
+            "[data-section]"
+        );
+
+    buttons.forEach(
+        function (button) {
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    showSection(
+                        button.dataset.section
+                    );
+
+                }
+            );
+        }
+    );
 }
 
 
-function openPage(pageName) {
-    const sections = {
-        dashboard: "dashboardSection",
-        scanner: "scannerSection",
-        products: "productsSection",
-        alerts: "alertsSection",
-        history: "historySection"
-    };
+function showSection(sectionId) {
 
-    Object.values(sections).forEach(function (id) {
-        document.getElementById(id)?.classList.add("hidden");
-    });
-
-    document.getElementById(sections[pageName])?.classList.remove("hidden");
-
-    document.querySelectorAll(".nav-btn").forEach(function (button) {
-        button.classList.toggle(
-            "active",
-            button.dataset.page === pageName
+    const sections =
+        document.querySelectorAll(
+            ".app-section"
         );
-    });
 
-    if (pageName !== "scanner") {
-        stopScanner();
+    sections.forEach(
+        function (section) {
+            section.style.display = "none";
+        }
+    );
+
+    const section =
+        document.getElementById(sectionId);
+
+    if (section) {
+        section.style.display = "block";
+    }
+
+    if (sectionId === "dashboardSection") {
+        updateDashboard();
+    }
+
+    if (sectionId === "productsSection") {
+        renderProducts();
+    }
+
+    if (sectionId === "alertsSection") {
+        renderAlerts();
+    }
+
+    if (sectionId === "historySection") {
+        renderHistory();
     }
 }
 
 
 /* =====================================================
-   ADD PRODUCT
+   PRODUCT MODAL
 ===================================================== */
 
-function openAddProduct() {
-    const modal = document.getElementById("productModal");
-    if (!modal) return;
+function openProductModal(product = null) {
 
-    modal.classList.remove("hidden");
-    setText("modalTitle", "Add Product");
+    const modal =
+        document.getElementById(
+            "productModal"
+        );
 
-    document.getElementById("productForm")?.reset();
-    setInputValue("editProductId", "");
-    setInputValue("soldQuantity", 0);
+    const form =
+        document.getElementById(
+            "productForm"
+        );
+
+    if (!modal || !form) return;
+
+    form.reset();
+
+    const editId =
+        document.getElementById(
+            "editProductId"
+        );
+
+    if (editId) {
+        editId.value = "";
+    }
+
+
+    if (product) {
+
+        document.getElementById(
+            "modalTitle"
+        ).textContent = "Edit Product";
+
+
+        editId.value = product.id;
+
+        document.getElementById(
+            "productName"
+        ).value = product.name || "";
+
+        document.getElementById(
+            "productCode"
+        ).value = product.code || "";
+
+        document.getElementById(
+            "totalQuantity"
+        ).value =
+            product.totalQuantity || 0;
+
+        document.getElementById(
+            "soldQuantity"
+        ).value =
+            product.soldQuantity || 0;
+
+        document.getElementById(
+            "expiryDate"
+        ).value =
+            product.expiryDate || "";
+
+    }
+    else {
+
+        document.getElementById(
+            "modalTitle"
+        ).textContent = "Add Product";
+    }
+
+    modal.style.display = "flex";
 }
 
 
 function closeProductModal() {
-    document.getElementById("productModal")?.classList.add("hidden");
+
+    const modal =
+        document.getElementById(
+            "productModal"
+        );
+
+    if (modal) {
+        modal.style.display = "none";
+    }
 }
 
 
 /* =====================================================
-   PRODUCT FORM
+   SAVE PRODUCT
 ===================================================== */
 
 function setupProductForm() {
-    const form = document.getElementById("productForm");
+
+    const form =
+        document.getElementById(
+            "productForm"
+        );
+
     if (!form) return;
 
-    form.addEventListener("submit", function (event) {
-        event.preventDefault();
+    form.addEventListener(
+        "submit",
+        function (event) {
 
-        const editId = document.getElementById("editProductId")?.value.trim() || "";
-        const name = document.getElementById("productName")?.value.trim() || "";
-        const code = document.getElementById("productCode")?.value.trim() || "";
-        const total = Number(document.getElementById("totalQuantity")?.value);
-        const sold = Number(document.getElementById("soldQuantity")?.value);
-        const expiry = document.getElementById("expiryDate")?.value || "";
+            event.preventDefault();
 
-        if (!name) {
-            showToast("Enter product name", "⚠️");
-            return;
-        }
+            const editId =
+                document.getElementById(
+                    "editProductId"
+                ).value;
 
-        if (!code) {
-            showToast("Enter Product ID / QR Code", "⚠️");
-            return;
-        }
+            const name =
+                document.getElementById(
+                    "productName"
+                ).value.trim();
 
-        if (!expiry) {
-            showToast("Select expiry date", "⚠️");
-            return;
-        }
+            const code =
+                document.getElementById(
+                    "productCode"
+                ).value.trim();
 
-        if (!Number.isFinite(total) || total < 0) {
-            showToast("Enter valid total quantity", "⚠️");
-            return;
-        }
+            const totalQuantity =
+                Number(
+                    document.getElementById(
+                        "totalQuantity"
+                    ).value
+                );
 
-        if (!Number.isFinite(sold) || sold < 0) {
-            showToast("Enter valid sold quantity", "⚠️");
-            return;
-        }
+            const soldQuantity =
+                Number(
+                    document.getElementById(
+                        "soldQuantity"
+                    ).value
+                );
 
-        if (sold > total) {
-            showToast("Sold quantity cannot be greater than total quantity", "⚠️");
-            return;
-        }
+            const expiryDate =
+                document.getElementById(
+                    "expiryDate"
+                ).value;
 
-        if (editId) {
-            const index = products.findIndex(
-                product => String(product.id) === String(editId)
-            );
 
-            if (index === -1) {
-                showToast("Product not found", "❌");
+            if (!name) {
+                showToast(
+                    "Enter product name",
+                    "error"
+                );
                 return;
             }
 
-            const duplicate = products.some(
-                (product, i) =>
-                    i !== index &&
-                    String(product.code).toLowerCase() === code.toLowerCase()
-            );
 
-            if (duplicate) {
-                showToast("Product ID / QR Code already exists", "⚠️");
+            if (
+                totalQuantity < 0 ||
+                !Number.isFinite(totalQuantity)
+            ) {
+                showToast(
+                    "Invalid quantity",
+                    "error"
+                );
                 return;
             }
 
-            products[index].name = name;
-            products[index].code = code;
-            products[index].total = total;
-            products[index].sold = sold;
-            products[index].expiry = expiry;
 
-            if (saveProducts()) {
-                closeProductModal();
-                updateAll();
-                showToast("Product updated successfully", "✓");
+            if (
+                soldQuantity < 0 ||
+                soldQuantity > totalQuantity
+            ) {
+                showToast(
+                    "Invalid sold quantity",
+                    "error"
+                );
+                return;
             }
-            return;
-        }
 
-        const duplicate = products.some(
-            product =>
-                String(product.code).toLowerCase() === code.toLowerCase()
-        );
 
-        if (duplicate) {
-            showToast("Product ID / QR Code already exists", "⚠️");
-            return;
-        }
+            if (!expiryDate) {
+                showToast(
+                    "Select expiry date",
+                    "error"
+                );
+                return;
+            }
 
-        products.unshift({
-            id: Date.now().toString(),
-            name,
-            code,
-            total,
-            sold,
-            expiry,
-            createdAt: new Date().toISOString()
-        });
 
-        if (saveProducts()) {
+            loadProducts();
+
+
+            if (editId) {
+
+                const product =
+                    products.find(
+                        function (item) {
+                            return String(item.id) ===
+                                String(editId);
+                        }
+                    );
+
+                if (product) {
+
+                    product.name = name;
+                    product.code = code;
+
+                    product.totalQuantity =
+                        totalQuantity;
+
+                    product.soldQuantity =
+                        soldQuantity;
+
+                    product.expiryDate =
+                        expiryDate;
+
+                    product.updatedAt =
+                        new Date().toISOString();
+
+                    saveProducts();
+
+                    showToast(
+                        "Product updated successfully"
+                    );
+                }
+
+            }
+            else {
+
+                products.push({
+
+                    id: generateId(),
+
+                    name: name,
+
+                    code: code,
+
+                    totalQuantity:
+                        totalQuantity,
+
+                    soldQuantity:
+                        soldQuantity,
+
+                    expiryDate:
+                        expiryDate,
+
+                    brand: "",
+
+                    category: "",
+
+                    quantity: "",
+
+                    image: "",
+
+                    frontPhoto: "",
+
+                    backPhoto: "",
+
+                    createdAt:
+                        new Date().toISOString(),
+
+                    updatedAt:
+                        new Date().toISOString()
+                });
+
+                saveProducts();
+
+                showToast(
+                    "Product added successfully"
+                );
+            }
+
+
             closeProductModal();
-            updateAll();
-            showToast("Product added successfully", "✓");
+
+            refreshAll();
         }
-    });
+    );
 }
 
 
 /* =====================================================
-   EDIT PRODUCT
+   EDIT
 ===================================================== */
 
-function editProduct(id) {
-    const product = products.find(
-        item => String(item.id) === String(id)
-    );
+function editProduct(productId) {
 
-    if (!product) {
-        showToast("Product not found", "❌");
-        return;
-    }
+    loadProducts();
 
-    document.getElementById("productModal")?.classList.remove("hidden");
-    setText("modalTitle", "Edit Product");
-
-    setInputValue("editProductId", product.id);
-    setInputValue("productName", product.name);
-    setInputValue("productCode", product.code);
-    setInputValue("totalQuantity", product.total);
-    setInputValue("soldQuantity", product.sold);
-    setInputValue("expiryDate", product.expiry);
-}
-
-
-/* =====================================================
-   DELETE PRODUCT
-===================================================== */
-
-function deleteProduct(id) {
-    const product = products.find(
-        item => String(item.id) === String(id)
-    );
-
-    if (!product) {
-        showToast("Product not found", "❌");
-        return;
-    }
-
-    if (!confirm("Delete " + product.name + "?")) return;
-
-    products = products.filter(
-        item => String(item.id) !== String(id)
-    );
-
-    if (saveProducts()) {
-        updateAll();
-        showToast("Product deleted", "🗑️");
-    }
-}
-
-
-/* =====================================================
-   SELL PRODUCT
-===================================================== */
-
-function openSellModal(id) {
-    const product = products.find(
-        item => String(item.id) === String(id)
-    );
-
-    if (!product) {
-        showToast("Product not found", "❌");
-        return;
-    }
-
-    const remaining = getRemaining(product);
-
-    if (remaining <= 0) {
-        showToast("No stock available", "⚠️");
-        return;
-    }
-
-    sellingProductId = product.id;
-
-    setText("sellProductName", product.name);
-    setText("availableStock", remaining);
-
-    const sellQuantity = document.getElementById("sellQuantity");
-    if (sellQuantity) {
-        sellQuantity.value = 1;
-        sellQuantity.max = remaining;
-    }
-
-    document.getElementById("sellModal")?.classList.remove("hidden");
-}
-
-
-function closeSellModal() {
-    document.getElementById("sellModal")?.classList.add("hidden");
-    sellingProductId = null;
-}
-
-
-document.addEventListener("click", function (event) {
-    if (!event.target.closest("#confirmSellBtn")) return;
-    if (!sellingProductId) return;
-
-    const product = products.find(
-        item => String(item.id) === String(sellingProductId)
-    );
-
-    if (!product) {
-        showToast("Product not found", "❌");
-        return;
-    }
-
-    const quantity = Number(
-        document.getElementById("sellQuantity")?.value
-    );
-
-    const remaining = getRemaining(product);
-
-    if (!Number.isFinite(quantity) || quantity <= 0) {
-        showToast("Enter valid quantity", "⚠️");
-        return;
-    }
-
-    if (quantity > remaining) {
-        showToast("Not enough stock", "⚠️");
-        return;
-    }
-
-    const oldRemaining = remaining;
-    product.sold = Number(product.sold) + quantity;
-
-    if (saveProducts()) {
-        saveSaleHistory(product, quantity, oldRemaining);
-        closeSellModal();
-        updateAll();
-        showToast(quantity + " item(s) sold. Stock updated.", "✓");
-    }
-});
-
-
-/* =====================================================
-   STOCK / EXPIRY
-===================================================== */
-
-function getRemaining(product) {
-    return Math.max(
-        0,
-        (Number(product.total) || 0) -
-        (Number(product.sold) || 0)
-    );
-}
-
-
-function getDaysUntilExpiry(dateString) {
-    if (!dateString) return 99999;
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const expiry = new Date(dateString + "T00:00:00");
-
-    if (Number.isNaN(expiry.getTime())) return 99999;
-
-    return Math.ceil(
-        (expiry.getTime() - today.getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-}
-
-
-function getStatus(product) {
-    const remaining = getRemaining(product);
-    const days = getDaysUntilExpiry(product.expiry);
-
-    if (remaining <= 0) {
-        return { type: "out", text: "Out of Stock" };
-    }
-
-    if (days < 0) {
-        return { type: "expired", text: "Expired" };
-    }
-
-    if (days >= 0 && days <= EXPIRY_ALERT_DAYS) {
-        return { type: "soon", text: "Expiring Soon" };
-    }
-
-    if (remaining <= LOW_STOCK_LIMIT) {
-        return { type: "low", text: "Low Stock" };
-    }
-
-    return { type: "good", text: "Good" };
-}
-
-
-function formatDate(dateString) {
-    if (!dateString) return "-";
-
-    const date = new Date(dateString + "T00:00:00");
-    if (Number.isNaN(date.getTime())) return "-";
-
-    return date.toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-    });
-}
-
-
-/* =====================================================
-   UPDATE DASHBOARD
-===================================================== */
-
-function updateAll() {
-    updateDashboard();
-    renderProducts();
-    renderRecentProducts();
-    renderAlerts();
-    renderHistory();
-}
-
-
-function updateDashboard() {
-    const totalProducts = products.length;
-
-    const totalStock = products.reduce(
-        (sum, product) => sum + getRemaining(product),
-        0
-    );
-
-    const lowStock = products.filter(product => {
-        const remaining = getRemaining(product);
-        return remaining > 0 && remaining <= LOW_STOCK_LIMIT;
-    }).length;
-
-    const expiringSoon = products.filter(product => {
-        const days = getDaysUntilExpiry(product.expiry);
-        return (
-            days >= 0 &&
-            days <= EXPIRY_ALERT_DAYS &&
-            getRemaining(product) > 0
+    const product =
+        products.find(
+            function (item) {
+                return String(item.id) ===
+                    String(productId);
+            }
         );
-    }).length;
 
-    setText("totalProducts", totalProducts);
-    setText("totalStock", totalStock);
-    setText("lowStock", lowStock);
-    setText("expiringSoon", expiringSoon);
+    if (product) {
+        openProductModal(product);
+    }
 }
 
 
 /* =====================================================
-   PRODUCT CARD
+   DELETE
 ===================================================== */
 
-function createProductCard(product) {
-    const remaining = getRemaining(product);
-    const status = getStatus(product);
-    const days = getDaysUntilExpiry(product.expiry);
+function deleteProduct(productId) {
 
-    let expiryText = formatDate(product.expiry);
+    loadProducts();
 
-    if (days < 0) {
-        expiryText += " • Expired";
-    } else if (days === 0) {
-        expiryText += " • Today";
-    } else if (days <= EXPIRY_ALERT_DAYS) {
-        expiryText += " • " + days + " day(s) left";
+    const product =
+        products.find(
+            function (item) {
+                return String(item.id) ===
+                    String(productId);
+            }
+        );
+
+    if (!product) return;
+
+    if (
+        !confirm(
+            "Delete " + product.name + "?"
+        )
+    ) {
+        return;
     }
 
-    return `
-        <div class="product-card">
-            <div class="product-top">
-                <div class="product-info">
-                    <h3>${escapeHTML(product.name)}</h3>
-                    <div class="product-code">
-                        ID: ${escapeHTML(product.code)}
-                    </div>
-                </div>
+    products =
+        products.filter(
+            function (item) {
+                return String(item.id) !==
+                    String(productId);
+            }
+        );
 
-                <span class="status ${status.type}">
-                    ${status.text}
-                </span>
-            </div>
+    saveProducts();
 
-            <div class="product-details">
-                <div class="detail-box">
-                    <span>Total</span>
-                    <strong>${product.total}</strong>
-                </div>
+    showToast(
+        "Product deleted successfully"
+    );
 
-                <div class="detail-box">
-                    <span>Sold</span>
-                    <strong>${product.sold}</strong>
-                </div>
+    refreshAll();
+}
+/* =====================================================
+   PRODUCT STATUS
+===================================================== */
 
-                <div class="detail-box">
-                    <span>Remaining</span>
-                    <strong>${remaining}</strong>
-                </div>
-            </div>
+function getProductStatus(product) {
 
-            <div style="margin-top:12px;font-size:13px;color:#737b91;">
-                Expiry:
-                <strong>${expiryText}</strong>
-            </div>
+    const stock =
+        getAvailableStock(product);
 
-            <div class="card-actions">
-                <button type="button" class="sell-btn"
-                    onclick="openSellModal('${escapeAttribute(product.id)}')">
-                    💰 Sell
-                </button>
+    const days =
+        getDaysUntilExpiry(
+            product.expiryDate
+        );
 
-                <button type="button" class="edit-btn"
-                    onclick="editProduct('${escapeAttribute(product.id)}')">
-                    ✏️ Edit
-                </button>
+    if (stock <= 0) {
+        return "Out of Stock";
+    }
 
-                <button type="button" class="delete-btn"
-                    onclick="deleteProduct('${escapeAttribute(product.id)}')">
-                    🗑️ Delete
-                </button>
-            </div>
-        </div>
-    `;
+    if (days < 0) {
+        return "Expired";
+    }
+
+    if (days <= EXPIRY_ALERT_DAYS) {
+        return "Expiring Soon";
+    }
+
+    if (stock <= LOW_STOCK_LIMIT) {
+        return "Low Stock";
+    }
+
+    return "Available";
 }
 
 
@@ -659,47 +788,320 @@ function createProductCard(product) {
 ===================================================== */
 
 function renderProducts() {
-    const container = document.getElementById("productList");
-    if (!container) return;
+
+    const list =
+        document.getElementById(
+            "productList"
+        );
+
+    if (!list) return;
+
+    loadProducts();
+
+    const searchInput =
+        document.getElementById(
+            "searchInput"
+        );
 
     const search =
-        document.getElementById("searchInput")?.value
-            .trim()
-            .toLowerCase() || "";
+        searchInput
+            ? searchInput.value
+                .trim()
+                .toLowerCase()
+            : "";
 
-    const filtered = products.filter(product => {
-        const name = String(product.name).toLowerCase();
-        const code = String(product.code).toLowerCase();
 
-        if (!name.includes(search) && !code.includes(search)) {
-            return false;
-        }
+    const filtered =
+        products.filter(
+            function (product) {
 
-        const status = getStatus(product);
+                const name =
+                    String(
+                        product.name || ""
+                    ).toLowerCase();
 
-        if (currentFilter === "all") return true;
-        if (currentFilter === "good") return status.type === "good";
-        if (currentFilter === "soon") return status.type === "soon";
-        if (currentFilter === "expired") return status.type === "expired";
+                const code =
+                    String(
+                        product.code || ""
+                    ).toLowerCase();
 
-        if (currentFilter === "low") {
-            const remaining = getRemaining(product);
-            return remaining > 0 && remaining <= LOW_STOCK_LIMIT;
-        }
+                const searchMatch =
+                    !search ||
+                    name.includes(search) ||
+                    code.includes(search);
 
-        return true;
-    });
+
+                let filterMatch = true;
+
+
+                if (
+                    currentFilter !== "all"
+                ) {
+
+                    filterMatch =
+                        getProductStatus(product)
+                            .toLowerCase() ===
+                        currentFilter.toLowerCase();
+                }
+
+
+                return (
+                    searchMatch &&
+                    filterMatch
+                );
+            }
+        );
+
+
+    list.innerHTML = "";
+
 
     if (filtered.length === 0) {
-        container.innerHTML = emptyState(
-            "📦",
-            "No Products Found",
-            "Add your first product."
-        );
+
+        list.innerHTML =
+            "<p>No products found.</p>";
+
         return;
     }
 
-    container.innerHTML = filtered.map(createProductCard).join("");
+
+    filtered.forEach(
+        function (product) {
+
+            const card =
+                document.createElement("div");
+
+            card.className =
+                "product-card";
+
+
+            card.innerHTML = `
+
+                <div class="product-info">
+
+                    <h3>
+                        ${escapeHTML(
+                            product.name
+                        )}
+                    </h3>
+
+                    <p>
+                        Code:
+                        ${escapeHTML(
+                            product.code || "N/A"
+                        )}
+                    </p>
+
+                    <p>
+                        Stock:
+                        <strong>
+                            ${getAvailableStock(
+                                product
+                            )}
+                        </strong>
+                    </p>
+
+                    <p>
+                        Sold:
+                        ${Number(
+                            product.soldQuantity || 0
+                        )}
+                    </p>
+
+                    <p>
+                        Expiry:
+                        ${escapeHTML(
+                            product.expiryDate || "N/A"
+                        )}
+                    </p>
+
+                    <p>
+                        Status:
+                        <strong>
+                            ${getProductStatus(
+                                product
+                            )}
+                        </strong>
+                    </p>
+
+                </div>
+
+                <div class="product-actions">
+
+                    <button
+                        onclick="editProduct('${product.id}')"
+                    >
+                        Edit
+                    </button>
+
+                    <button
+                        onclick="openSellModal('${product.id}')"
+                    >
+                        Sell
+                    </button>
+
+                    <button
+                        onclick="deleteProduct('${product.id}')"
+                    >
+                        Delete
+                    </button>
+
+                </div>
+            `;
+
+
+            list.appendChild(card);
+        }
+    );
+}
+
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+function setupSearch() {
+
+    const input =
+        document.getElementById(
+            "searchInput"
+        );
+
+    if (!input) return;
+
+    input.addEventListener(
+        "input",
+        renderProducts
+    );
+}
+
+
+/* =====================================================
+   FILTER
+===================================================== */
+
+function setupFilters() {
+
+    const buttons =
+        document.querySelectorAll(
+            ".filter-btn"
+        );
+
+    buttons.forEach(
+        function (button) {
+
+            button.addEventListener(
+                "click",
+                function () {
+
+                    buttons.forEach(
+                        function (btn) {
+                            btn.classList.remove(
+                                "active"
+                            );
+                        }
+                    );
+
+                    button.classList.add(
+                        "active"
+                    );
+
+                    currentFilter =
+                        button.dataset.filter ||
+                        "all";
+
+                    renderProducts();
+                }
+            );
+        }
+    );
+}
+
+
+/* =====================================================
+   DASHBOARD
+===================================================== */
+
+function updateDashboard() {
+
+    loadProducts();
+
+    let stock = 0;
+    let sold = 0;
+    let expiring = 0;
+
+
+    products.forEach(
+        function (product) {
+
+            stock +=
+                getAvailableStock(product);
+
+            sold +=
+                Number(
+                    product.soldQuantity || 0
+                );
+
+
+            const days =
+                getDaysUntilExpiry(
+                    product.expiryDate
+                );
+
+
+            if (
+                days >= 0 &&
+                days <= EXPIRY_ALERT_DAYS
+            ) {
+                expiring++;
+            }
+        }
+    );
+
+
+    const totalProducts =
+        document.getElementById(
+            "totalProducts"
+        );
+
+    const totalStock =
+        document.getElementById(
+            "totalStock"
+        );
+
+    const totalSold =
+        document.getElementById(
+            "totalSold"
+        );
+
+    const expiringSoon =
+        document.getElementById(
+            "expiringSoon"
+        );
+
+
+    if (totalProducts) {
+        totalProducts.textContent =
+            products.length;
+    }
+
+    if (totalStock) {
+        totalStock.textContent =
+            stock;
+    }
+
+    if (totalSold) {
+        totalSold.textContent =
+            sold;
+    }
+
+    if (expiringSoon) {
+        expiringSoon.textContent =
+            expiring;
+    }
+
+
+    renderRecentProducts();
 }
 
 
@@ -708,711 +1110,413 @@ function renderProducts() {
 ===================================================== */
 
 function renderRecentProducts() {
-    const container = document.getElementById("recentProducts");
+
+    const container =
+        document.getElementById(
+            "recentProducts"
+        );
+
     if (!container) return;
 
-    const recent = products.slice(0, 4);
+    loadProducts();
+
+    const recent =
+        [...products]
+            .sort(
+                function (a, b) {
+
+                    return new Date(
+                        b.createdAt || 0
+                    ) -
+                    new Date(
+                        a.createdAt || 0
+                    );
+                }
+            )
+            .slice(0, 5);
+
+
+    container.innerHTML = "";
+
 
     if (recent.length === 0) {
-        container.innerHTML = emptyState(
-            "📦",
-            "No Products Yet",
-            "Click Add Product to get started."
-        );
+
+        container.innerHTML =
+            "<p>No products added yet.</p>";
+
         return;
     }
 
-    container.innerHTML = recent.map(createProductCard).join("");
-}
 
+    recent.forEach(
+        function (product) {
 
-function emptyState(icon, title, message) {
-    return `
-        <div class="empty-state">
-            <div class="empty-icon">${icon}</div>
-            <h3>${title}</h3>
-            <p>${message}</p>
-        </div>
-    `;
+            const item =
+                document.createElement("div");
+
+            item.innerHTML = `
+
+                <strong>
+                    ${escapeHTML(
+                        product.name
+                    )}
+                </strong>
+
+                <span>
+                    Stock:
+                    ${getAvailableStock(
+                        product
+                    )}
+                </span>
+
+                <span>
+                    Expiry:
+                    ${escapeHTML(
+                        product.expiryDate || "N/A"
+                    )}
+                </span>
+            `;
+
+            container.appendChild(item);
+        }
+    );
 }
 
 
 /* =====================================================
-   SEARCH / FILTER
+   SELL MODAL
 ===================================================== */
 
-function setupSearch() {
-    document.getElementById("searchInput")
-        ?.addEventListener("input", renderProducts);
+function openSellModal(productId) {
+
+    loadProducts();
+
+    const product =
+        products.find(
+            function (item) {
+                return String(item.id) ===
+                    String(productId);
+            }
+        );
+
+    if (!product) return;
+
+
+    const stock =
+        getAvailableStock(product);
+
+
+    if (stock <= 0) {
+
+        showToast(
+            "No stock available",
+            "error"
+        );
+
+        return;
+    }
+
+
+    sellingProductId =
+        product.id;
+
+
+    const name =
+        document.getElementById(
+            "sellProductName"
+        );
+
+    const available =
+        document.getElementById(
+            "availableStock"
+        );
+
+    const quantity =
+        document.getElementById(
+            "sellQuantity"
+        );
+
+
+    if (name) {
+        name.textContent =
+            product.name;
+    }
+
+    if (available) {
+        available.textContent =
+            stock;
+    }
+
+    if (quantity) {
+
+        quantity.value = 1;
+        quantity.max = stock;
+    }
+
+
+    const modal =
+        document.getElementById(
+            "sellModal"
+        );
+
+    if (modal) {
+        modal.style.display = "flex";
+    }
 }
 
 
-function setupFilters() {
-    document.querySelectorAll(".filter-btn").forEach(button => {
-        button.addEventListener("click", function () {
-            document.querySelectorAll(".filter-btn")
-                .forEach(btn => btn.classList.remove("active"));
+function closeSellModal() {
 
-            button.classList.add("active");
-            currentFilter = button.dataset.filter;
-            renderProducts();
-        });
-    });
+    const modal =
+        document.getElementById(
+            "sellModal"
+        );
+
+    if (modal) {
+        modal.style.display = "none";
+    }
+
+    sellingProductId = null;
 }
 
 
 /* =====================================================
-   QR + BARCODE SCANNER
-=====================================================
-
-   IMPORTANT:
-   This scanner accepts:
-   - QR Code
-   - Code 128
-   - Code 39
-   - Code 93
-   - EAN-13
-   - EAN-8
-   - UPC-A
-   - UPC-E
-   - ITF
-   - Data Matrix
-   - PDF417
-   - Aztec
-
-   For details WITHOUT looking up localStorage, the QR/barcode
-   itself must contain the details.
-
-   Supported JSON example:
-   {
-     "name":"Milk Powder",
-     "code":"8901234567890",
-     "total":100,
-     "sold":20,
-     "expiry":"2027-05-30"
-   }
-
-   Also supported compact format:
-   EXPIRY|Milk Powder|8901234567890|100|20|2027-05-30
-
-   A normal shop barcode usually contains only a product number.
-   It does NOT normally contain expiry/quantity.
+   CONFIRM SELL
 ===================================================== */
 
-function setupScannerButtons() {
-    document.getElementById("startScannerBtn")
-        ?.addEventListener("click", startScanner);
+function setupSellButton() {
 
-    document.getElementById("stopScannerBtn")
-        ?.addEventListener("click", stopScanner);
-}
-
-
-function getScannerFormats() {
-    if (typeof Html5QrcodeSupportedFormats === "undefined") {
-        return undefined;
-    }
-
-    return [
-        Html5QrcodeSupportedFormats.QR_CODE,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.CODE_93,
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.EAN_8,
-        Html5QrcodeSupportedFormats.UPC_A,
-        Html5QrcodeSupportedFormats.UPC_E,
-        Html5QrcodeSupportedFormats.ITF,
-        Html5QrcodeSupportedFormats.DATA_MATRIX,
-        Html5QrcodeSupportedFormats.PDF_417,
-        Html5QrcodeSupportedFormats.AZTEC
-    ].filter(Boolean);
-}
-
-
-async function startScanner() {
-    const message = document.getElementById("scannerMessage");
-
-    if (scannerRunning) {
-        if (message) message.textContent = "Camera is already running.";
-        return;
-    }
-
-    if (typeof Html5Qrcode === "undefined") {
-        if (message) {
-            message.textContent =
-                "Scanner library not loaded. Check your internet connection.";
-        }
-        return;
-    }
-
-    const formats = getScannerFormats();
-
-    const config = {
-        fps: 10,
-        qrbox: function (viewfinderWidth, viewfinderHeight) {
-            const size = Math.floor(
-                Math.min(viewfinderWidth, viewfinderHeight) * 0.70
-            );
-            return {
-                width: Math.max(180, Math.min(size, 320)),
-                height: Math.max(180, Math.min(size, 320))
-            };
-        },
-        aspectRatio: 1.0,
-        disableFlip: false
-    };
-
-    if (formats && formats.length) {
-        config.formatsToSupport = formats;
-    }
-
-    try {
-        if (message) {
-            message.textContent =
-                "Opening camera... QR + barcode scanning enabled.";
-        }
-
-        await stopScanner();
-
-        scanner = new Html5Qrcode("reader");
-
-        await scanner.start(
-            { facingMode: "environment" },
-            config,
-            onScanSuccess,
-            onQRCodeError
+    const button =
+        document.getElementById(
+            "confirmSellBtn"
         );
 
-        scannerRunning = true;
+    if (!button) return;
 
-        if (message) {
-            message.textContent =
-                "Camera is ON. Show a QR code or barcode.";
-        }
-    } catch (error) {
-        console.error("Camera error:", error);
 
-        scannerRunning = false;
+    button.addEventListener(
+        "click",
+        function () {
 
-        try {
-            await stopScanner();
-
-            const cameras = await Html5Qrcode.getCameras();
-
-            if (cameras && cameras.length > 0) {
-                scanner = new Html5Qrcode("reader");
-
-                await scanner.start(
-                    cameras[0].id,
-                    config,
-                    onScanSuccess,
-                    onQRCodeError
-                );
-
-                scannerRunning = true;
-
-                if (message) {
-                    message.textContent =
-                        "Camera is ON. Show a QR code or barcode.";
-                }
+            if (!sellingProductId) {
                 return;
             }
-        } catch (fallbackError) {
-            console.error("Camera fallback error:", fallbackError);
-        }
-
-        if (message) {
-            message.innerHTML =
-                "❌ Camera could not open.<br><br>" +
-                "Allow camera permission.<br><br>" +
-                "Use HTTPS (GitHub Pages) or VS Code Live Server.";
-        }
-    }
-}
 
 
-/* =====================================================
-   SCAN SUCCESS
-===================================================== */
-
-async function onScanSuccess(decodedText, decodedResult) {
-    const text = String(decodedText || "").trim();
-
-    if (!text) return;
-
-    // Prevent the same barcode from firing many times per second.
-    const now = Date.now();
-
-    if (
-        text === lastScannedValue &&
-        now - lastScanTime < 2500
-    ) {
-        return;
-    }
-
-    lastScannedValue = text;
-    lastScanTime = now;
-
-    const productData = parseScannedProduct(text);
-
-    showScanResult(productData, text, decodedResult);
-
-    await stopScanner();
-}
+            loadProducts();
 
 
-/* =====================================================
-   PARSE QR / BARCODE DATA
-===================================================== */
+            const product =
+                products.find(
+                    function (item) {
 
-function parseScannedProduct(text) {
-    // 1. Try JSON first.
-    try {
-        const data = JSON.parse(text);
+                        return String(item.id) ===
+                            String(sellingProductId);
+                    }
+                );
 
-        if (data && typeof data === "object") {
-            const normalized = normalizeScannedProduct(data);
 
-            if (normalized) {
-                return {
-                    type: "embedded",
-                    product: normalized
-                };
+            if (!product) return;
+
+
+            const quantityInput =
+                document.getElementById(
+                    "sellQuantity"
+                );
+
+
+            const quantity =
+                Number(
+                    quantityInput
+                        ? quantityInput.value
+                        : 0
+                );
+
+
+            const stock =
+                getAvailableStock(product);
+
+
+            if (
+                !Number.isInteger(quantity) ||
+                quantity <= 0
+            ) {
+
+                showToast(
+                    "Enter a valid quantity",
+                    "error"
+                );
+
+                return;
             }
-        }
-    } catch (error) {
-        // Not JSON. Continue.
-    }
-
-    // 2. Try compact EXPIRY format.
-    const parts = text.split("|");
-
-    if (
-        parts.length >= 6 &&
-        parts[0].toUpperCase() === "EXPIRY"
-    ) {
-        const normalized = normalizeScannedProduct({
-            name: parts[1],
-            code: parts[2],
-            total: parts[3],
-            sold: parts[4],
-            expiry: parts[5]
-        });
-
-        if (normalized) {
-            return {
-                type: "embedded",
-                product: normalized
-            };
-        }
-    }
-
-    // 3. Try the existing local product list.
-    const localProduct = products.find(product =>
-        String(product.code).trim().toLowerCase() ===
-        text.toLowerCase()
-    );
-
-    if (localProduct) {
-        return {
-            type: "local",
-            product: localProduct
-        };
-    }
-
-    // 4. No details are available in the scanned code.
-    return {
-        type: "code-only",
-        code: text
-    };
-}
 
 
-/* =====================================================
-   NORMALIZE EMBEDDED PRODUCT
-===================================================== */
+            if (quantity > stock) {
 
-function normalizeScannedProduct(data) {
-    const name = String(
-        data.name ??
-        data.productName ??
-        ""
-    ).trim();
+                showToast(
+                    "Not enough stock",
+                    "error"
+                );
 
-    const code = String(
-        data.code ??
-        data.productCode ??
-        data.id ??
-        ""
-    ).trim();
-
-    const expiry = String(
-        data.expiry ??
-        data.expiryDate ??
-        ""
-    ).trim();
-
-    const total = Number(
-        data.total ??
-        data.quantity ??
-        data.totalQuantity
-    );
-
-    const sold = Number(
-        data.sold ??
-        data.soldQuantity ??
-        0
-    );
-
-    if (!name || !code || !expiry) {
-        return null;
-    }
-
-    if (!Number.isFinite(total) || total < 0) {
-        return null;
-    }
-
-    if (!Number.isFinite(sold) || sold < 0) {
-        return null;
-    }
-
-    return {
-        id: String(data.id ?? code),
-        name,
-        code,
-        total,
-        sold,
-        expiry
-    };
-}
-
-
-/* =====================================================
-   SHOW SCAN RESULT
-===================================================== */
-
-function showScanResult(result, rawText, decodedResult) {
-    const resultBox = document.getElementById("scanResult");
-    const scanText = document.getElementById("scanText");
-
-    resultBox?.classList.remove("hidden");
-
-    if (!scanText) return;
-
-    if (result.type === "embedded" || result.type === "local") {
-        const product = result.product;
-        const remaining = getRemaining(product);
-        const status = getStatus(product);
-
-        scanText.innerHTML = `
-            <strong>${escapeHTML(product.name)}</strong>
-
-            <br><br>
-
-            Product ID:
-            ${escapeHTML(product.code)}
-
-            <br>
-
-            Total Quantity:
-            ${product.total}
-
-            <br>
-
-            Sold Quantity:
-            ${product.sold}
-
-            <br>
-
-            Remaining:
-            ${remaining}
-
-            <br>
-
-            Expiry:
-            ${formatDate(product.expiry)}
-
-            <br>
-
-            Status:
-            ${escapeHTML(status.text)}
-
-            <br><br>
-
-            ${
-                result.type === "embedded"
-                    ? "📦 Details read directly from the scanned code."
-                    : "💾 Details found in this device's saved products."
+                return;
             }
-        `;
-
-        showToast(product.name + " found!", "📦");
-        return;
-    }
-
-    // Code-only result: never show "Product not found".
-    // We show the scanned code and explain that the code itself
-    // did not contain the extra fields.
-    scanText.innerHTML = `
-        <strong>✅ Barcode / QR Scanned</strong>
-
-        <br><br>
-
-        Scanned Code:
-        <strong>${escapeHTML(rawText)}</strong>
-
-        <br><br>
-
-        ⚠️ This code does not contain product name,
-        quantity or expiry date.
-
-        <br><br>
-
-        To show all details without saving them first,
-        create the QR/barcode with product data inside it,
-        or connect an online product database/API.
-    `;
-
-    showToast("Code scanned successfully", "📷");
-}
 
 
-/* =====================================================
-   SCANNER ERROR CALLBACK
-===================================================== */
-
-function onQRCodeError(errorMessage) {
-    // Continuous camera decoding errors are normal.
-}
+            product.soldQuantity =
+                Number(
+                    product.soldQuantity || 0
+                ) + quantity;
 
 
-/* =====================================================
-   STOP SCANNER
-===================================================== */
+            salesHistory.push({
 
-async function stopScanner() {
-    if (!scanner) {
-        scannerRunning = false;
-        return;
-    }
+                id: generateId(),
 
-    try {
-        if (scannerRunning) {
-            await scanner.stop();
-        }
-    } catch (error) {
-        console.log("Scanner stop:", error);
-    }
+                productId:
+                    product.id,
 
-    try {
-        await scanner.clear();
-    } catch (error) {
-        console.log("Scanner clear:", error);
-    }
+                productName:
+                    product.name,
 
-    scanner = null;
-    scannerRunning = false;
-}
+                code:
+                    product.code || "",
+
+                quantity:
+                    quantity,
+
+                date:
+                    getToday(),
+
+                time:
+                    new Date()
+                        .toLocaleTimeString()
+            });
 
 
-/* =====================================================
-   OPTIONAL: CREATE DATA FOR A PRODUCT QR CODE
-=====================================================
-
-   Use this when you later want to generate a QR code that
-   contains all product details.
-
-   Example:
-   const text = createProductQRData({
-       name:"Milk Powder",
-       code:"MP1001",
-       total:100,
-       sold:20,
-       expiry:"2027-05-30"
-   });
-
-   The returned JSON can be placed inside a QR code.
-===================================================== */
-
-function createProductQRData(product) {
-    return JSON.stringify({
-        name: String(product.name || ""),
-        code: String(product.code || ""),
-        total: Number(product.total || 0),
-        sold: Number(product.sold || 0),
-        expiry: String(product.expiry || "")
-    });
-}
+            saveProducts();
+            saveSalesHistory();
 
 
-/* =====================================================
-   NOTIFICATIONS
-===================================================== */
+            closeSellModal();
 
-async function enableNotifications() {
-    if (!("Notification" in window)) {
-        showToast("Browser does not support notifications", "⚠️");
-        return;
-    }
 
-    try {
-        const permission = await Notification.requestPermission();
-
-        if (permission !== "granted") {
-            showToast("Notification permission denied", "⚠️");
-            return;
-        }
-
-        showToast("Notifications enabled", "🔔");
-
-        if ("serviceWorker" in navigator) {
-            const registration =
-                await navigator.serviceWorker.ready;
-
-            await registration.showNotification(
-                "Expiry Alert System",
-                {
-                    body: "Notifications are enabled successfully.",
-                    tag: "notification-test",
-                    icon: "./icon-192.png"
-                }
+            showToast(
+                quantity +
+                " item(s) sold successfully"
             );
+
+
+            refreshAll();
         }
-    } catch (error) {
-        console.error("Notification error:", error);
-        showToast("Notification error", "❌");
-    }
+    );
 }
-
-
-function setupNotificationButton() {
-    document.getElementById("notificationBtn")
-        ?.addEventListener("click", enableNotifications);
-}
-
-
 /* =====================================================
-   EXPIRY ALERTS
-===================================================== */
-
-function checkExpiryAlerts() {
-    if (!products.length) return;
-
-    products.forEach(function (product) {
-        if (getRemaining(product) <= 0) return;
-
-        const days = getDaysUntilExpiry(product.expiry);
-
-        if (days >= 0 && days <= EXPIRY_ALERT_DAYS) {
-            sendExpiryNotification(product, days);
-        }
-    });
-}
-
-
-async function sendExpiryNotification(product, days) {
-    const today = new Date().toISOString().slice(0, 10);
-
-    const notificationKey =
-        "expiryNotified_" + product.id + "_" + today;
-
-    if (localStorage.getItem(notificationKey)) return;
-
-    const message =
-        days === 0
-            ? product.name + " expires today. " +
-              getRemaining(product) + " pieces remaining."
-            : product.name + " expires in " +
-              days + " day(s). " +
-              getRemaining(product) + " pieces remaining.";
-
-    localStorage.setItem(notificationKey, "true");
-
-    showToast(message, "🔔");
-
-    if (
-        "Notification" in window &&
-        Notification.permission === "granted" &&
-        "serviceWorker" in navigator
-    ) {
-        try {
-            const registration =
-                await navigator.serviceWorker.ready;
-
-            await registration.showNotification(
-                "⚠️ Expiry Product Alert",
-                {
-                    body: message,
-                    tag: "expiry-" + product.id,
-                    requireInteraction: true,
-                    icon: "./icon-192.png"
-                }
-            );
-        } catch (error) {
-            console.error("Notification error:", error);
-        }
-    }
-}
-
-
-/* =====================================================
-   ALERT LIST
+   ALERTS
 ===================================================== */
 
 function renderAlerts() {
-    const container = document.getElementById("alertList");
-    if (!container) return;
 
-    const alerts = products.filter(product => {
-        const days = getDaysUntilExpiry(product.expiry);
-
-        return (
-            getRemaining(product) > 0 &&
-            days <= EXPIRY_ALERT_DAYS
+    const list =
+        document.getElementById(
+            "alertList"
         );
-    });
+
+    if (!list) return;
+
+    loadProducts();
+
+    const alerts = [];
+
+
+    products.forEach(
+        function (product) {
+
+            const stock =
+                getAvailableStock(product);
+
+            const days =
+                getDaysUntilExpiry(
+                    product.expiryDate
+                );
+
+
+            if (days < 0) {
+
+                alerts.push(
+                    "❌ " +
+                    product.name +
+                    " is expired."
+                );
+
+            }
+            else if (
+                days <= EXPIRY_ALERT_DAYS
+            ) {
+
+                alerts.push(
+                    "⏰ " +
+                    product.name +
+                    " expires in " +
+                    days +
+                    " day(s)."
+                );
+            }
+
+
+            if (
+                stock > 0 &&
+                stock <= LOW_STOCK_LIMIT
+            ) {
+
+                alerts.push(
+                    "⚠️ " +
+                    product.name +
+                    " has low stock. " +
+                    stock +
+                    " item(s) remaining."
+                );
+            }
+
+
+            if (stock <= 0) {
+
+                alerts.push(
+                    "🚫 " +
+                    product.name +
+                    " is out of stock."
+                );
+            }
+        }
+    );
+
+
+    list.innerHTML = "";
+
 
     if (alerts.length === 0) {
-        container.innerHTML = emptyState(
-            "🔔",
-            "No Alerts",
-            "There are no products needing attention."
-        );
+
+        list.innerHTML =
+            "<p>No alerts 🎉</p>";
+
         return;
     }
 
-    container.innerHTML = alerts.map(product => {
-        const days = getDaysUntilExpiry(product.expiry);
 
-        return `
-            <div class="alert-card">
-                <h3>
-                    ⚠️ ${escapeHTML(product.name)}
-                </h3>
+    alerts.forEach(
+        function (message) {
 
-                <p>
-                    Remaining:
-                    <strong>${getRemaining(product)}</strong>
-                </p>
+            const item =
+                document.createElement("div");
 
-                <p>
-                    Expiry:
-                    ${formatDate(product.expiry)}
-                </p>
+            item.className =
+                "alert-item";
 
-                <p>
-                    ${
-                        days < 0
-                            ? "Expired"
-                            : days === 0
-                            ? "Expires Today"
-                            : "Expires in " + days + " day(s)"
-                    }
-                </p>
-            </div>
-        `;
-    }).join("");
+            item.textContent =
+                message;
+
+            list.appendChild(item);
+        }
+    );
 }
 
 
@@ -1420,185 +1524,1059 @@ function renderAlerts() {
    SALES HISTORY
 ===================================================== */
 
-function saveSaleHistory(product, quantity, oldRemaining) {
-    try {
-        let history = getSaleHistory();
-
-        history.unshift({
-            id: Date.now().toString(),
-            productId: product.id,
-            productName: product.name,
-            productCode: product.code,
-            quantity,
-            oldRemaining,
-            remaining: getRemaining(product),
-            date: new Date().toISOString()
-        });
-
-        history = history.slice(0, 100);
-
-        localStorage.setItem(
-            "salesHistory",
-            JSON.stringify(history)
-        );
-    } catch (error) {
-        console.error("History save error:", error);
-    }
-}
-
-
-function getSaleHistory() {
-    try {
-        const saved = localStorage.getItem("salesHistory");
-        const history = saved ? JSON.parse(saved) : [];
-
-        return Array.isArray(history) ? history : [];
-    } catch (error) {
-        console.error("History load error:", error);
-        return [];
-    }
-}
-
-
 function renderHistory() {
-    const container = document.getElementById("historyList");
-    if (!container) return;
 
-    const history = getSaleHistory();
+    const list =
+        document.getElementById(
+            "historyList"
+        );
+
+    if (!list) return;
+
+    loadProducts();
+
+    const history =
+        [...salesHistory].reverse();
+
+
+    list.innerHTML = "";
+
 
     if (history.length === 0) {
-        container.innerHTML = emptyState(
-            "📜",
-            "No Sales History",
-            "Sold products will appear here."
-        );
+
+        list.innerHTML =
+            "<p>No sales history yet.</p>";
+
         return;
     }
 
-    container.innerHTML = history.map(item => {
-        const date = new Date(item.date);
 
-        const formattedDate = date.toLocaleDateString(
-            "en-IN",
-            {
-                day: "2-digit",
-                month: "short",
-                year: "numeric"
-            }
-        );
+    history.forEach(
+        function (sale) {
 
-        const formattedTime = date.toLocaleTimeString(
-            "en-IN",
-            {
-                hour: "2-digit",
-                minute: "2-digit"
-            }
-        );
+            const item =
+                document.createElement("div");
 
-        return `
-            <div class="history-card">
-                <div class="history-icon">💰</div>
+            item.className =
+                "history-item";
 
-                <div class="history-info">
-                    <h3>${escapeHTML(item.productName)}</h3>
 
-                    <p>
-                        ID:
-                        ${escapeHTML(item.productCode)}
-                    </p>
+            item.innerHTML = `
 
-                    <small>
-                        ${formattedDate} • ${formattedTime}
-                    </small>
-                </div>
+                <strong>
+                    ${escapeHTML(
+                        sale.productName ||
+                        "Product"
+                    )}
+                </strong>
 
-                <div class="history-quantity">
-                    <strong>-${item.quantity}</strong>
-                    <span>Sold</span>
-                    <small>Stock: ${item.remaining}</small>
-                </div>
-            </div>
-        `;
-    }).join("");
+                <p>
+                    Quantity Sold:
+                    ${Number(
+                        sale.quantity || 0
+                    )}
+                </p>
+
+                <p>
+                    Code:
+                    ${escapeHTML(
+                        sale.code || "N/A"
+                    )}
+                </p>
+
+                <p>
+                    Date:
+                    ${escapeHTML(
+                        sale.date || ""
+                    )}
+                </p>
+
+                <p>
+                    Time:
+                    ${escapeHTML(
+                        sale.time || ""
+                    )}
+                </p>
+            `;
+
+
+            list.appendChild(item);
+        }
+    );
 }
 
 
 /* =====================================================
-   SERVICE WORKER
+   QR / BARCODE SCANNER
 ===================================================== */
 
-function registerServiceWorker() {
-    if (!("serviceWorker" in navigator)) return;
+function startScanner() {
 
-    navigator.serviceWorker
-        .register("./service-worker.js")
-        .then(registration => {
-            console.log(
-                "Service Worker registered:",
-                registration.scope
+    const reader =
+        document.getElementById(
+            "reader"
+        );
+
+    if (!reader) {
+
+        showToast(
+            "Scanner area not found",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (scannerRunning) {
+
+        showToast(
+            "Scanner is already running",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (
+        typeof Html5Qrcode ===
+        "undefined"
+    ) {
+
+        showToast(
+            "Scanner library not loaded",
+            "error"
+        );
+
+        return;
+    }
+
+
+    scanner =
+        new Html5Qrcode("reader");
+
+
+    const config = {
+
+        fps: 10,
+
+        qrbox: {
+            width: 250,
+            height: 250
+        },
+
+        formatsToSupport: [
+
+            Html5QrcodeSupportedFormats.QR_CODE,
+
+            Html5QrcodeSupportedFormats.CODE_128,
+
+            Html5QrcodeSupportedFormats.CODE_39,
+
+            Html5QrcodeSupportedFormats.CODE_93,
+
+            Html5QrcodeSupportedFormats.EAN_13,
+
+            Html5QrcodeSupportedFormats.EAN_8,
+
+            Html5QrcodeSupportedFormats.UPC_A,
+
+            Html5QrcodeSupportedFormats.UPC_E,
+
+            Html5QrcodeSupportedFormats.ITF
+        ]
+    };
+
+
+    scanner.start(
+
+        {
+            facingMode: "environment"
+        },
+
+        config,
+
+        function (decodedText) {
+
+            handleScannedCode(
+                decodedText
             );
-        })
-        .catch(error => {
-            console.error("Service Worker error:", error);
-        });
+        },
+
+        function () {
+            // Scanner is searching
+        }
+
+    )
+    .then(
+        function () {
+
+            scannerRunning = true;
+
+            const message =
+                document.getElementById(
+                    "scannerMessage"
+                );
+
+            if (message) {
+
+                message.textContent =
+                    "Scanner is running...";
+            }
+
+            showToast(
+                "Scanner started"
+            );
+        }
+    )
+    .catch(
+        function (error) {
+
+            console.error(error);
+
+            scanner = null;
+
+            scannerRunning = false;
+
+            showToast(
+                "Camera permission or camera error",
+                "error"
+            );
+        }
+    );
 }
 
 
 /* =====================================================
-   TOAST
+   STOP SCANNER
 ===================================================== */
 
-function showToast(message, icon = "✓") {
-    const toast = document.getElementById("toast");
-    const toastText = document.getElementById("toastText");
-    const toastIcon = document.getElementById("toastIcon");
+function stopScanner() {
 
-    if (!toast || !toastText || !toastIcon) {
-        alert(message);
+    if (
+        !scanner ||
+        !scannerRunning
+    ) {
         return;
     }
 
-    toastText.textContent = message;
-    toastIcon.textContent = icon;
 
-    toast.classList.add("show");
+    scanner.stop()
+        .then(
+            function () {
 
-    clearTimeout(toastTimer);
+                scanner.clear();
 
-    toastTimer = setTimeout(function () {
-        toast.classList.remove("show");
-    }, 3500);
+                scanner = null;
+
+                scannerRunning = false;
+
+
+                const message =
+                    document.getElementById(
+                        "scannerMessage"
+                    );
+
+
+                if (message) {
+
+                    message.textContent =
+                        "Scanner stopped.";
+                }
+            }
+        )
+        .catch(
+            function (error) {
+
+                console.error(error);
+
+                scanner = null;
+
+                scannerRunning = false;
+            }
+        );
 }
 
 
 /* =====================================================
-   HELPERS
+   HANDLE SCANNED CODE
 ===================================================== */
 
-function setText(id, value) {
-    const element = document.getElementById(id);
-    if (element) element.textContent = value;
+async function handleScannedCode(
+    decodedText
+) {
+
+    const code =
+        String(
+            decodedText || ""
+        ).trim();
+
+
+    if (!code) return;
+
+
+    const scanText =
+        document.getElementById(
+            "scanText"
+        );
+
+
+    if (scanText) {
+
+        scanText.textContent =
+            "Scanned: " + code;
+    }
+
+
+    loadProducts();
+
+
+    /* Check local database first */
+
+    const localProduct =
+        products.find(
+            function (product) {
+
+                return String(
+                    product.code || ""
+                ).trim() === code;
+            }
+        );
+
+
+    if (localProduct) {
+
+        showScannedProduct(
+            localProduct
+        );
+
+        stopScanner();
+
+        return;
+    }
+
+
+    /* Check QR data */
+
+    const embedded =
+        parseScannedProduct(code);
+
+
+    if (embedded) {
+
+        showScannedProduct(
+            embedded
+        );
+
+        stopScanner();
+
+        return;
+    }
+
+
+    /* Search online */
+
+    showToast(
+        "Searching product details..."
+    );
+
+
+    const onlineProduct =
+        await lookupProductByBarcode(
+            code
+        );
+
+
+    stopScanner();
+
+
+    if (onlineProduct) {
+
+        showScannedProduct(
+            onlineProduct
+        );
+
+    }
+    else {
+
+        showUnknownScannedProduct(
+            code
+        );
+    }
 }
 
 
-function setInputValue(id, value) {
-    const element = document.getElementById(id);
-    if (element) element.value = value ?? "";
+/* =====================================================
+   PARSE QR DATA
+===================================================== */
+
+function parseScannedProduct(code) {
+
+    try {
+
+        const data =
+            JSON.parse(code);
+
+
+        if (
+            data &&
+            typeof data === "object" &&
+            (
+                data.name ||
+                data.productName
+            )
+        ) {
+
+            return {
+
+                id:
+                    generateId(),
+
+                name:
+                    data.name ||
+                    data.productName ||
+                    "Unknown Product",
+
+                code:
+                    data.code ||
+                    data.barcode ||
+                    "",
+
+                totalQuantity:
+                    Number(
+                        data.quantity ||
+                        data.totalQuantity ||
+                        0
+                    ),
+
+                soldQuantity:
+                    Number(
+                        data.soldQuantity || 0
+                    ),
+
+                expiryDate:
+                    data.expiryDate ||
+                    "",
+
+                brand:
+                    data.brand ||
+                    "",
+
+                category:
+                    data.category ||
+                    "",
+
+                quantity:
+                    data.packageQuantity ||
+                    data.quantityText ||
+                    "",
+
+                image:
+                    data.image ||
+                    "",
+
+                frontPhoto:
+                    data.frontPhoto ||
+                    "",
+
+                backPhoto:
+                    data.backPhoto ||
+                    "",
+
+                createdAt:
+                    new Date()
+                        .toISOString()
+            };
+        }
+
+    }
+    catch (error) {
+
+        // Not JSON
+    }
+
+
+    /* EXPIRY|Name|Code|Quantity|Expiry */
+
+    if (
+        code.startsWith(
+            "EXPIRY|"
+        )
+    ) {
+
+        const parts =
+            code.split("|");
+
+
+        if (parts.length >= 5) {
+
+            return {
+
+                id:
+                    generateId(),
+
+                name:
+                    parts[1] ||
+                    "Unknown Product",
+
+                code:
+                    parts[2] ||
+                    "",
+
+                totalQuantity:
+                    Number(parts[3]) || 0,
+
+                soldQuantity:
+                    0,
+
+                expiryDate:
+                    parts[4] ||
+                    "",
+
+                frontPhoto:
+                    "",
+
+                backPhoto:
+                    "",
+
+                createdAt:
+                    new Date()
+                        .toISOString()
+            };
+        }
+    }
+
+
+    return null;
+}
+/* =====================================================
+   ONLINE PRODUCT LOOKUP
+===================================================== */
+
+async function lookupProductByBarcode(
+    barcode
+) {
+
+    try {
+
+        const url =
+            "https://world.openfoodfacts.org/api/v2/product/" +
+            encodeURIComponent(barcode) +
+            ".json";
+
+
+        const response =
+            await fetch(url);
+
+
+        if (!response.ok) {
+            return null;
+        }
+
+
+        const data =
+            await response.json();
+
+
+        if (
+            !data ||
+            data.status !== 1 ||
+            !data.product
+        ) {
+
+            return null;
+        }
+
+
+        const product =
+            data.product;
+
+
+        const name =
+            product.product_name ||
+            product.product_name_en ||
+            product.generic_name ||
+            "";
+
+
+        if (!name) {
+            return null;
+        }
+
+
+        return {
+
+            id:
+                generateId(),
+
+            name:
+                name,
+
+            code:
+                barcode,
+
+            brand:
+                product.brands || "",
+
+            category:
+                product.categories || "",
+
+            quantity:
+                product.quantity || "",
+
+            totalQuantity:
+                0,
+
+            soldQuantity:
+                0,
+
+            expiryDate:
+                "",
+
+            image:
+                product.image_url ||
+                product.image_front_url ||
+                "",
+
+            frontPhoto:
+                product.image_front_url ||
+                "",
+
+            backPhoto:
+                "",
+
+            ingredients:
+                product.ingredients_text ||
+                "",
+
+            createdAt:
+                new Date()
+                    .toISOString()
+        };
+
+    }
+    catch (error) {
+
+        console.error(
+            "Product lookup error:",
+            error
+        );
+
+        return null;
+    }
 }
 
 
-function escapeHTML(value) {
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+/* =====================================================
+   SHOW SCANNED PRODUCT
+===================================================== */
+
+function showScannedProduct(
+    product
+) {
+
+    lastScannedProduct =
+        product;
+
+
+    const result =
+        document.getElementById(
+            "scanResult"
+        );
+
+
+    if (!result) return;
+
+
+    result.style.display =
+        "block";
+
+
+    result.innerHTML = `
+
+        <div class="scan-product-result">
+
+            <h3>
+                Product Found ✅
+            </h3>
+
+            <p>
+                <strong>
+                    Product Name:
+                </strong>
+
+                ${escapeHTML(
+                    product.name ||
+                    "Unknown"
+                )}
+            </p>
+
+            <p>
+                <strong>
+                    Barcode:
+                </strong>
+
+                ${escapeHTML(
+                    product.code ||
+                    "N/A"
+                )}
+            </p>
+
+            <p>
+                <strong>
+                    Brand:
+                </strong>
+
+                ${escapeHTML(
+                    product.brand ||
+                    "N/A"
+                )}
+            </p>
+
+            <p>
+                <strong>
+                    Category:
+                </strong>
+
+                ${escapeHTML(
+                    product.category ||
+                    "N/A"
+                )}
+            </p>
+
+            <p>
+                <strong>
+                    Package:
+                </strong>
+
+                ${escapeHTML(
+                    product.quantity ||
+                    "N/A"
+                )}
+            </p>
+
+            ${
+                product.image
+                ? `
+                    <img
+                        src="${escapeHTML(
+                            product.image
+                        )}"
+                        alt="Product"
+                        style="
+                            width:120px;
+                            max-height:120px;
+                            object-fit:contain;
+                        "
+                    >
+                  `
+                : ""
+            }
+
+            <br>
+
+            <button
+                onclick="
+                    saveLastScannedProduct()
+                "
+            >
+                Add To Inventory
+            </button>
+
+        </div>
+    `;
 }
 
 
-function escapeAttribute(value) {
-    return String(value)
-        .replace(/\\/g, "\\\\")
-        .replace(/'/g, "\\'");
+/* =====================================================
+   UNKNOWN PRODUCT
+===================================================== */
+
+function showUnknownScannedProduct(
+    code
+) {
+
+    lastScannedProduct = {
+
+        id:
+            generateId(),
+
+        name:
+            "",
+
+        code:
+            code,
+
+        brand:
+            "",
+
+        category:
+            "",
+
+        quantity:
+            "",
+
+        totalQuantity:
+            0,
+
+        soldQuantity:
+            0,
+
+        expiryDate:
+            "",
+
+        frontPhoto:
+            "",
+
+        backPhoto:
+            "",
+
+        createdAt:
+            new Date()
+                .toISOString()
+    };
+
+
+    const result =
+        document.getElementById(
+            "scanResult"
+        );
+
+
+    if (!result) return;
+
+
+    result.style.display =
+        "block";
+
+
+    result.innerHTML = `
+
+        <div class="scan-product-result">
+
+            <h3>
+                Product Not Found ⚠️
+            </h3>
+
+            <p>
+                Barcode:
+
+                <strong>
+                    ${escapeHTML(code)}
+                </strong>
+            </p>
+
+            <p>
+                Product information
+                was not found online.
+            </p>
+
+            <button
+                onclick="
+                    saveLastScannedProduct()
+                "
+            >
+                Add Product Manually
+            </button>
+
+        </div>
+    `;
 }
+
+
+/* =====================================================
+   ADD SCANNED PRODUCT
+===================================================== */
+
+function saveLastScannedProduct() {
+
+    if (!lastScannedProduct) {
+
+        showToast(
+            "No scanned product found",
+            "error"
+        );
+
+        return;
+    }
+
+
+    openProductModal();
+
+
+    setTimeout(
+        function () {
+
+            const name =
+                document.getElementById(
+                    "productName"
+                );
+
+            const code =
+                document.getElementById(
+                    "productCode"
+                );
+
+            const quantity =
+                document.getElementById(
+                    "totalQuantity"
+                );
+
+
+            if (name) {
+
+                name.value =
+                    lastScannedProduct.name ||
+                    "";
+            }
+
+
+            if (code) {
+
+                code.value =
+                    lastScannedProduct.code ||
+                    "";
+            }
+
+
+            if (quantity) {
+
+                quantity.value =
+                    lastScannedProduct.totalQuantity ||
+                    0;
+            }
+
+        },
+        100
+    );
+}
+
+
+/* =====================================================
+   SCANNER BUTTONS
+===================================================== */
+
+function setupScannerButtons() {
+
+    const start =
+        document.getElementById(
+            "startScannerBtn"
+        );
+
+    const stop =
+        document.getElementById(
+            "stopScannerBtn"
+        );
+
+
+    if (start) {
+
+        start.addEventListener(
+            "click",
+            startScanner
+        );
+    }
+
+
+    if (stop) {
+
+        stop.addEventListener(
+            "click",
+            stopScanner
+        );
+    }
+}
+
+
+/* =====================================================
+   CLOSE MODAL OUTSIDE CLICK
+===================================================== */
+
+function setupModalClose() {
+
+    window.addEventListener(
+        "click",
+        function (event) {
+
+            const productModal =
+                document.getElementById(
+                    "productModal"
+                );
+
+            const sellModal =
+                document.getElementById(
+                    "sellModal"
+                );
+
+
+            if (
+                productModal &&
+                event.target === productModal
+            ) {
+
+                closeProductModal();
+            }
+
+
+            if (
+                sellModal &&
+                event.target === sellModal
+            ) {
+
+                closeSellModal();
+            }
+        }
+    );
+}
+
+
+/* =====================================================
+   FINAL INITIALIZATION
+===================================================== */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+
+        loadProducts();
+
+        setupLogin();
+
+        setupLogout();
+
+        setupNavigation();
+
+        setupProductForm();
+
+        setupSellButton();
+
+        setupSearch();
+
+        setupFilters();
+
+        setupScannerButtons();
+
+        setupModalClose();
+
+
+        const loggedInUser =
+            sessionStorage.getItem(
+                "loggedInUser"
+            );
+
+
+        if (loggedInUser) {
+
+            showApp(
+                loggedInUser
+            );
+
+        }
+        else {
+
+            showLogin();
+        }
+
+    }
+);
