@@ -1,151 +1,123 @@
-/* =====================================================
-   WHOLESALE PRODUCT EXPIRY ALERT SYSTEM
-===================================================== */
+/* =========================================================
+   EXPIRY ALERT SYSTEM
+   Corrected JavaScript
+   ========================================================= */
+
+"use strict";
+
+/* -----------------------------
+   GLOBAL DATA
+----------------------------- */
+
+let products = [];
+let salesHistory = [];
+let sellingProductId = null;
+let currentFilter = "all";
 
 const LOW_STOCK_LIMIT = 10;
 const EXPIRY_ALERT_DAYS = 7;
 
-let products = [];
-let salesHistory = [];
-
-let currentFilter = "all";
-
-let scanner = null;
-let scannerRunning = false;
-
-let sellingProductId = null;
-
-let toastTimer = null;
-
-let lastScannedProduct = null;
-
-
-/* =====================================================
+/* -----------------------------
    STORAGE
-===================================================== */
+----------------------------- */
 
-function loadProducts() {
-
+function loadData() {
     try {
-        products =
-            JSON.parse(
-                localStorage.getItem("expiryProducts")
-            ) || [];
+        products = JSON.parse(localStorage.getItem("expiryProducts")) || [];
+        salesHistory = JSON.parse(localStorage.getItem("salesHistory")) || [];
+
+        if (!Array.isArray(products)) products = [];
+        if (!Array.isArray(salesHistory)) salesHistory = [];
     } catch (error) {
+        console.error("Storage error:", error);
         products = [];
-    }
-
-    try {
-        salesHistory =
-            JSON.parse(
-                localStorage.getItem("salesHistory")
-            ) || [];
-    } catch (error) {
         salesHistory = [];
     }
 }
 
-
 function saveProducts() {
-
-    localStorage.setItem(
-        "expiryProducts",
-        JSON.stringify(products)
-    );
+    localStorage.setItem("expiryProducts", JSON.stringify(products));
 }
 
-
-function saveSalesHistory() {
-
-    localStorage.setItem(
-        "salesHistory",
-        JSON.stringify(salesHistory)
-    );
+function saveSales() {
+    localStorage.setItem("salesHistory", JSON.stringify(salesHistory));
 }
 
-
-/* =====================================================
+/* -----------------------------
    HELPERS
-===================================================== */
+----------------------------- */
+
+function $(id) {
+    return document.getElementById(id);
+}
+
+function setText(id, value) {
+    const el = $(id);
+    if (el) el.textContent = value;
+}
+
+function getValue(id) {
+    const el = $(id);
+    return el ? el.value.trim() : "";
+}
+
+function setValue(id, value) {
+    const el = $(id);
+    if (el) el.value = value ?? "";
+}
 
 function generateId() {
-
-    return Date.now().toString() +
-        Math.random()
-            .toString(36)
-            .substring(2, 8);
+    return Date.now().toString(36) + "-" +
+           Math.random().toString(36).substring(2, 8);
 }
 
-
-function getToday() {
-
-    return new Date()
-        .toISOString()
-        .split("T")[0];
+function escapeHTML(value) {
+    const div = document.createElement("div");
+    div.textContent = value ?? "";
+    return div.innerHTML;
 }
 
+function availableStock(product) {
+    return Math.max(
+        0,
+        Number(product.totalQuantity || 0) -
+        Number(product.soldQuantity || 0)
+    );
+}
 
-function getDaysUntilExpiry(expiryDate) {
-
-    if (!expiryDate) return 9999;
+function expiryDays(date) {
+    if (!date) return 9999;
 
     const today = new Date();
-    const expiry = new Date(expiryDate);
+    const expiry = new Date(date);
 
     today.setHours(0, 0, 0, 0);
     expiry.setHours(0, 0, 0, 0);
 
     return Math.ceil(
-        (expiry - today) /
-        (1000 * 60 * 60 * 24)
+        (expiry - today) / (1000 * 60 * 60 * 24)
     );
 }
 
-
-function getAvailableStock(product) {
-
-    const total =
-        Number(product.totalQuantity || 0);
-
-    const sold =
-        Number(product.soldQuantity || 0);
-
-    return Math.max(0, total - sold);
+function productPrice(product) {
+    return Number(
+        product.price ??
+        product.mrp ??
+        product.sellingPrice ??
+        0
+    ) || 0;
 }
 
-
-function escapeHTML(value) {
-
-    const div =
-        document.createElement("div");
-
-    div.textContent =
-        value == null ? "" : String(value);
-
-    return div.innerHTML;
-}
-
-
-/* =====================================================
+/* -----------------------------
    TOAST
-===================================================== */
+----------------------------- */
 
-function showToast(
-    message,
-    type = "success"
-) {
-
-    const toast =
-        document.getElementById("toast");
-
-    const text =
-        document.getElementById("toastText");
-
-    const icon =
-        document.getElementById("toastIcon");
+function showToast(message, type = "success") {
+    const toast = $("toast");
+    const text = $("toastText");
+    const icon = $("toastIcon");
 
     if (!toast || !text) {
-
         alert(message);
         return;
     }
@@ -153,708 +125,512 @@ function showToast(
     text.textContent = message;
 
     if (icon) {
-
-        if (type === "error") {
-            icon.textContent = "❌";
-        }
-        else if (type === "warning") {
-            icon.textContent = "⚠️";
-        }
-        else {
-            icon.textContent = "✅";
-        }
+        icon.textContent =
+            type === "error" ? "❌" :
+            type === "warning" ? "⚠️" :
+            "✓";
     }
 
     toast.classList.add("show");
 
-    clearTimeout(toastTimer);
-
-    toastTimer = setTimeout(
-        function () {
-            toast.classList.remove("show");
-        },
-        3000
-    );
+    setTimeout(() => {
+        toast.classList.remove("show");
+    }, 2500);
 }
 
-
-/* =====================================================
-   REFRESH
-===================================================== */
-
-function refreshAll() {
-
-    loadProducts();
-
-    updateDashboard();
-    renderProducts();
-    renderAlerts();
-    renderHistory();
-}
-/* =====================================================
+/* =========================================================
    LOGIN
-===================================================== */
+========================================================= */
 
 function setupLogin() {
 
-    const form =
-        document.getElementById("loginForm");
+    const form = $("loginForm");
 
     if (!form) return;
 
-    form.addEventListener(
-        "submit",
-        function (event) {
+    /* Create first user automatically */
+    if (!localStorage.getItem("expiryUsers")) {
 
-            event.preventDefault();
+        localStorage.setItem(
+            "expiryUsers",
+            JSON.stringify([
+                {
+                    username: "admin",
+                    password: "admin123",
+                    name: "Administrator"
+                }
+            ])
+        );
+    }
 
-            const username =
-                document
-                    .getElementById("username")
-                    .value
-                    .trim();
+    form.addEventListener("submit", function(event) {
 
-            const password =
-                document
-                    .getElementById("password")
-                    .value
-                    .trim();
+        event.preventDefault();
 
-            if (!username || !password) {
+        const username = getValue("username");
+        const password = getValue("password");
 
-                showToast(
-                    "Please enter username and password",
-                    "error"
-                );
+        if (!username || !password) {
+            showToast(
+                "Enter username and password",
+                "error"
+            );
+            return;
+        }
 
-                return;
-            }
+        let users = [];
 
-            sessionStorage.setItem(
-                "loggedInUser",
-                username
+        try {
+            users =
+                JSON.parse(
+                    localStorage.getItem("expiryUsers")
+                ) || [];
+        } catch {
+            users = [];
+        }
+
+        const user = users.find(u =>
+            String(u.username).toLowerCase() ===
+            username.toLowerCase() &&
+            String(u.password) === password
+        );
+
+        if (!user) {
+
+            showToast(
+                "Invalid username or password",
+                "error"
             );
 
-            showApp(username);
+            $("password").value = "";
+
+            return;
         }
-    );
 
-
-    const toggle =
-        document.getElementById(
-            "togglePassword"
+        sessionStorage.setItem(
+            "loggedInUser",
+            user.username
         );
 
-    if (toggle) {
+        sessionStorage.setItem(
+            "loggedInName",
+            user.name || user.username
+        );
 
-        toggle.addEventListener(
-            "click",
-            function () {
+        showApplication(
+            user.name || user.username
+        );
+    });
 
-                const password =
-                    document.getElementById(
-                        "password"
-                    );
+    const eye = $("togglePassword");
 
-                password.type =
-                    password.type === "password"
-                        ? "text"
-                        : "password";
+    if (eye) {
+
+        eye.addEventListener("click", function() {
+
+            const password = $("password");
+
+            if (!password) return;
+
+            if (password.type === "password") {
+
+                password.type = "text";
+                eye.textContent = "🙈";
+
+            } else {
+
+                password.type = "password";
+                eye.textContent = "👁️";
             }
-        );
+        });
     }
 }
 
+function showApplication(name) {
 
-/* =====================================================
-   SHOW APP
-===================================================== */
-
-function showApp(username) {
-
-    const login =
-        document.getElementById("loginPage");
-
-    const app =
-        document.getElementById("appPage");
+    const login = $("loginPage");
+    const app = $("appPage");
 
     if (login) {
+        login.classList.add("hidden");
         login.style.display = "none";
     }
 
     if (app) {
+        app.classList.remove("hidden");
         app.style.display = "block";
     }
 
-    const welcome =
-        document.getElementById("welcomeUser");
+    setText("welcomeUser", name);
 
-    if (welcome) {
-        welcome.textContent =
-            "Welcome, " + username;
-    }
-
-    refreshAll();
+    loadData();
+    refreshDashboard();
 }
 
+function showLoginPage() {
 
-function showLogin() {
-
-    const login =
-        document.getElementById("loginPage");
-
-    const app =
-        document.getElementById("appPage");
-
-    if (login) {
-        login.style.display = "block";
-    }
+    const login = $("loginPage");
+    const app = $("appPage");
 
     if (app) {
+        app.classList.add("hidden");
         app.style.display = "none";
     }
+
+    if (login) {
+        login.classList.remove("hidden");
+        login.style.display = "flex";
+    }
 }
-
-
-/* =====================================================
-   LOGOUT
-===================================================== */
 
 function setupLogout() {
 
-    const button =
-        document.getElementById("logoutBtn");
+    const button = $("logoutBtn");
 
     if (!button) return;
 
-    button.addEventListener(
-        "click",
-        function () {
+    button.addEventListener("click", function() {
 
-            sessionStorage.removeItem(
-                "loggedInUser"
-            );
+        sessionStorage.removeItem("loggedInUser");
+        sessionStorage.removeItem("loggedInName");
 
-            stopScanner();
-
-            showLogin();
-        }
-    );
+        showLoginPage();
+    });
 }
 
-
-/* =====================================================
+/* =========================================================
    NAVIGATION
-===================================================== */
+========================================================= */
 
 function setupNavigation() {
 
-    const buttons =
-        document.querySelectorAll(
-            "[data-section]"
-        );
+    document
+        .querySelectorAll(".nav-btn[data-page]")
+        .forEach(button => {
 
-    buttons.forEach(
-        function (button) {
+            button.addEventListener("click", function() {
 
-            button.addEventListener(
-                "click",
-                function () {
+                openPage(
+                    this.dataset.page
+                );
 
-                    showSection(
-                        button.dataset.section
-                    );
+            });
 
-                }
-            );
-        }
-    );
+        });
 }
 
+function openPage(page) {
 
-function showSection(sectionId) {
-
-    const sections =
-        document.querySelectorAll(
-            ".app-section"
-        );
-
-    sections.forEach(
-        function (section) {
-            section.style.display = "none";
-        }
+    const sections = document.querySelectorAll(
+        ".page-section"
     );
 
-    const section =
-        document.getElementById(sectionId);
+    sections.forEach(section => {
+        section.classList.add("hidden");
+        section.style.display = "none";
+    });
 
-    if (section) {
-        section.style.display = "block";
+    const target = $(page + "Section");
+
+    if (!target) {
+        console.warn(
+            "Section not found:",
+            page + "Section"
+        );
+        return;
     }
 
-    if (sectionId === "dashboardSection") {
-        updateDashboard();
+    target.classList.remove("hidden");
+    target.style.display = "block";
+
+    document
+        .querySelectorAll(".nav-btn[data-page]")
+        .forEach(button => {
+
+            button.classList.toggle(
+                "active",
+                button.dataset.page === page
+            );
+
+        });
+
+    if (page === "dashboard") {
+        refreshDashboard();
     }
 
-    if (sectionId === "productsSection") {
+    if (page === "products") {
         renderProducts();
     }
 
-    if (sectionId === "alertsSection") {
+    if (page === "alerts") {
         renderAlerts();
     }
 
-    if (sectionId === "historySection") {
+    if (page === "history") {
         renderHistory();
     }
 }
 
+/* =========================================================
+   ADD PRODUCT - MANUAL
+   DO NOT CHANGE THIS FLOW
+========================================================= */
 
-/* =====================================================
-   PRODUCT MODAL
-===================================================== */
+function openAddProduct() {
 
-function openProductModal(product = null) {
+    const modal = $("productModal");
 
-    const modal =
-        document.getElementById(
-            "productModal"
-        );
+    if (!modal) return;
 
-    const form =
-        document.getElementById(
-            "productForm"
-        );
+    const form = $("productForm");
 
-    if (!modal || !form) return;
+    if (form) form.reset();
 
-    form.reset();
+    setValue("editProductId", "");
 
-    const editId =
-        document.getElementById(
-            "editProductId"
-        );
+    setText(
+        "modalTitle",
+        "Add Product"
+    );
 
-    if (editId) {
-        editId.value = "";
-    }
-
-
-    if (product) {
-
-        document.getElementById(
-            "modalTitle"
-        ).textContent = "Edit Product";
-
-
-        editId.value = product.id;
-
-        document.getElementById(
-            "productName"
-        ).value = product.name || "";
-
-        document.getElementById(
-            "productCode"
-        ).value = product.code || "";
-
-        document.getElementById(
-            "totalQuantity"
-        ).value =
-            product.totalQuantity || 0;
-
-        document.getElementById(
-            "soldQuantity"
-        ).value =
-            product.soldQuantity || 0;
-
-        document.getElementById(
-            "expiryDate"
-        ).value =
-            product.expiryDate || "";
-
-    }
-    else {
-
-        document.getElementById(
-            "modalTitle"
-        ).textContent = "Add Product";
-    }
-
+    modal.classList.remove("hidden");
     modal.style.display = "flex";
 }
 
-
 function closeProductModal() {
 
-    const modal =
-        document.getElementById(
-            "productModal"
-        );
+    const modal = $("productModal");
 
-    if (modal) {
-        modal.style.display = "none";
-    }
+    if (!modal) return;
+
+    modal.classList.add("hidden");
+    modal.style.display = "none";
 }
-
-
-/* =====================================================
-   SAVE PRODUCT
-===================================================== */
 
 function setupProductForm() {
 
-    const form =
-        document.getElementById(
-            "productForm"
-        );
+    const form = $("productForm");
 
     if (!form) return;
 
-    form.addEventListener(
-        "submit",
-        function (event) {
+    form.addEventListener("submit", function(event) {
 
-            event.preventDefault();
+        event.preventDefault();
 
-            const editId =
-                document.getElementById(
-                    "editProductId"
-                ).value;
+        const editId =
+            getValue("editProductId");
 
-            const name =
-                document.getElementById(
-                    "productName"
-                ).value.trim();
+        const name =
+            getValue("productName");
 
-            const code =
-                document.getElementById(
-                    "productCode"
-                ).value.trim();
+        const code =
+            getValue("productCode");
 
-            const totalQuantity =
-                Number(
-                    document.getElementById(
-                        "totalQuantity"
-                    ).value
-                );
+        const quantity =
+            Number(getValue("totalQuantity"));
 
-            const soldQuantity =
-                Number(
-                    document.getElementById(
-                        "soldQuantity"
-                    ).value
-                );
+        const sold =
+            Number(getValue("soldQuantity"));
 
-            const expiryDate =
-                document.getElementById(
-                    "expiryDate"
-                ).value;
+        const expiry =
+            getValue("expiryDate");
 
-
-            if (!name) {
-                showToast(
-                    "Enter product name",
-                    "error"
-                );
-                return;
-            }
-
-
-            if (
-                totalQuantity < 0 ||
-                !Number.isFinite(totalQuantity)
-            ) {
-                showToast(
-                    "Invalid quantity",
-                    "error"
-                );
-                return;
-            }
-
-
-            if (
-                soldQuantity < 0 ||
-                soldQuantity > totalQuantity
-            ) {
-                showToast(
-                    "Invalid sold quantity",
-                    "error"
-                );
-                return;
-            }
-
-
-            if (!expiryDate) {
-                showToast(
-                    "Select expiry date",
-                    "error"
-                );
-                return;
-            }
-
-
-            loadProducts();
-
-
-            if (editId) {
-
-                const product =
-                    products.find(
-                        function (item) {
-                            return String(item.id) ===
-                                String(editId);
-                        }
-                    );
-
-                if (product) {
-
-                    product.name = name;
-                    product.code = code;
-
-                    product.totalQuantity =
-                        totalQuantity;
-
-                    product.soldQuantity =
-                        soldQuantity;
-
-                    product.expiryDate =
-                        expiryDate;
-
-                    product.updatedAt =
-                        new Date().toISOString();
-
-                    saveProducts();
-
-                    showToast(
-                        "Product updated successfully"
-                    );
-                }
-
-            }
-            else {
-
-                products.push({
-
-                    id: generateId(),
-
-                    name: name,
-
-                    code: code,
-
-                    totalQuantity:
-                        totalQuantity,
-
-                    soldQuantity:
-                        soldQuantity,
-
-                    expiryDate:
-                        expiryDate,
-
-                    brand: "",
-
-                    category: "",
-
-                    quantity: "",
-
-                    image: "",
-
-                    frontPhoto: "",
-
-                    backPhoto: "",
-
-                    createdAt:
-                        new Date().toISOString(),
-
-                    updatedAt:
-                        new Date().toISOString()
-                });
-
-                saveProducts();
-
-                showToast(
-                    "Product added successfully"
-                );
-            }
-
-
-            closeProductModal();
-
-            refreshAll();
+        if (!name) {
+            showToast(
+                "Enter product name",
+                "error"
+            );
+            return;
         }
-    );
-}
 
+        if (!code) {
+            showToast(
+                "Enter Product ID",
+                "error"
+            );
+            return;
+        }
 
-/* =====================================================
-   EDIT
-===================================================== */
+        if (
+            !Number.isInteger(quantity) ||
+            quantity < 0
+        ) {
+            showToast(
+                "Enter valid quantity",
+                "error"
+            );
+            return;
+        }
 
-function editProduct(productId) {
+        if (
+            !Number.isInteger(sold) ||
+            sold < 0 ||
+            sold > quantity
+        ) {
+            showToast(
+                "Invalid sold quantity",
+                "error"
+            );
+            return;
+        }
 
-    loadProducts();
+        if (!expiry) {
+            showToast(
+                "Select expiry date",
+                "error"
+            );
+            return;
+        }
 
-    const product =
-        products.find(
-            function (item) {
-                return String(item.id) ===
-                    String(productId);
+        loadData();
+
+        if (editId) {
+
+            const product =
+                products.find(
+                    p => String(p.id) ===
+                    String(editId)
+                );
+
+            if (!product) {
+                showToast(
+                    "Product not found",
+                    "error"
+                );
+                return;
             }
-        );
 
-    if (product) {
-        openProductModal(product);
-    }
-}
+            product.name = name;
+            product.code = code;
+            product.totalQuantity = quantity;
+            product.soldQuantity = sold;
+            product.expiryDate = expiry;
 
+            saveProducts();
 
-/* =====================================================
-   DELETE
-===================================================== */
+            showToast(
+                "Product updated successfully"
+            );
 
-function deleteProduct(productId) {
+        } else {
 
-    loadProducts();
+            const duplicate =
+                products.some(
+                    p =>
+                    String(p.code).toLowerCase() ===
+                    code.toLowerCase()
+                );
 
-    const product =
-        products.find(
-            function (item) {
-                return String(item.id) ===
-                    String(productId);
+            if (duplicate) {
+                showToast(
+                    "Product ID already exists",
+                    "error"
+                );
+                return;
             }
-        );
 
-    if (!product) return;
+            products.push({
 
-    if (
-        !confirm(
-            "Delete " + product.name + "?"
-        )
-    ) {
-        return;
-    }
+                id: generateId(),
 
-    products =
-        products.filter(
-            function (item) {
-                return String(item.id) !==
-                    String(productId);
-            }
-        );
+                name: name,
 
-    saveProducts();
+                code: code,
 
-    showToast(
-        "Product deleted successfully"
-    );
+                totalQuantity: quantity,
 
-    refreshAll();
-}
-/* =====================================================
-   PRODUCT STATUS
-===================================================== */
+                soldQuantity: sold,
 
-function getProductStatus(product) {
+                expiryDate: expiry,
 
-    const stock =
-        getAvailableStock(product);
+                mrp: 0,
 
-    const days =
-        getDaysUntilExpiry(
-            product.expiryDate
-        );
+                createdAt:
+                    new Date().toISOString()
 
-    if (stock <= 0) {
-        return "Out of Stock";
-    }
+            });
 
-    if (days < 0) {
-        return "Expired";
-    }
+            saveProducts();
 
-    if (days <= EXPIRY_ALERT_DAYS) {
-        return "Expiring Soon";
-    }
+            showToast(
+                "Product added successfully"
+            );
+        }
 
-    if (stock <= LOW_STOCK_LIMIT) {
-        return "Low Stock";
-    }
+        closeProductModal();
 
-    return "Available";
+        refreshAll();
+    });
 }
 
-
-/* =====================================================
-   RENDER PRODUCTS
-===================================================== */
+/* =========================================================
+   PRODUCTS
+========================================================= */
 
 function renderProducts() {
 
-    const list =
-        document.getElementById(
-            "productList"
-        );
+    const list = $("productList");
 
     if (!list) return;
 
-    loadProducts();
-
-    const searchInput =
-        document.getElementById(
-            "searchInput"
-        );
+    loadData();
 
     const search =
-        searchInput
-            ? searchInput.value
-                .trim()
-                .toLowerCase()
-            : "";
-
+        getValue("searchInput").toLowerCase();
 
     const filtered =
-        products.filter(
-            function (product) {
+        products.filter(product => {
 
-                const name =
-                    String(
-                        product.name || ""
-                    ).toLowerCase();
+            const name =
+                String(product.name || "")
+                    .toLowerCase();
 
-                const code =
-                    String(
-                        product.code || ""
-                    ).toLowerCase();
+            const code =
+                String(product.code || "")
+                    .toLowerCase();
 
-                const searchMatch =
-                    !search ||
-                    name.includes(search) ||
-                    code.includes(search);
+            const matchesSearch =
+                !search ||
+                name.includes(search) ||
+                code.includes(search);
 
+            let matchesFilter = true;
 
-                let filterMatch = true;
+            const stock =
+                availableStock(product);
 
+            const days =
+                expiryDays(product.expiryDate);
 
-                if (
-                    currentFilter !== "all"
-                ) {
-
-                    filterMatch =
-                        getProductStatus(product)
-                            .toLowerCase() ===
-                        currentFilter.toLowerCase();
-                }
-
-
-                return (
-                    searchMatch &&
-                    filterMatch
-                );
+            if (currentFilter === "good") {
+                matchesFilter =
+                    stock > LOW_STOCK_LIMIT &&
+                    days > EXPIRY_ALERT_DAYS;
             }
-        );
 
+            if (currentFilter === "soon") {
+                matchesFilter =
+                    days >= 0 &&
+                    days <= EXPIRY_ALERT_DAYS;
+            }
+
+            if (currentFilter === "expired") {
+                matchesFilter = days < 0;
+            }
+
+            if (currentFilter === "low") {
+                matchesFilter =
+                    stock > 0 &&
+                    stock <= LOW_STOCK_LIMIT;
+            }
+
+            return (
+                matchesSearch &&
+                matchesFilter
+            );
+        });
 
     list.innerHTML = "";
-
 
     if (filtered.length === 0) {
 
@@ -864,280 +640,356 @@ function renderProducts() {
         return;
     }
 
+    filtered.forEach(product => {
 
-    filtered.forEach(
-        function (product) {
+        const card =
+            document.createElement("div");
 
-            const card =
-                document.createElement("div");
+        card.className =
+            "product-card";
 
-            card.className =
-                "product-card";
+        card.innerHTML = `
 
+            <div class="product-info">
 
-            card.innerHTML = `
+                <h3>
+                    ${escapeHTML(product.name)}
+                </h3>
 
-                <div class="product-info">
+                <p>
+                    Product ID:
+                    <strong>
+                        ${escapeHTML(product.code)}
+                    </strong>
+                </p>
 
-                    <h3>
-                        ${escapeHTML(
-                            product.name
-                        )}
-                    </h3>
+                <p>
+                    Available Stock:
+                    <strong>
+                        ${availableStock(product)}
+                    </strong>
+                </p>
 
-                    <p>
-                        Code:
-                        ${escapeHTML(
-                            product.code || "N/A"
-                        )}
-                    </p>
+                <p>
+                    Sold:
+                    ${Number(product.soldQuantity || 0)}
+                </p>
 
-                    <p>
-                        Stock:
-                        <strong>
-                            ${getAvailableStock(
-                                product
-                            )}
-                        </strong>
-                    </p>
+                <p>
+                    Expiry:
+                    ${escapeHTML(product.expiryDate)}
+                </p>
 
-                    <p>
-                        Sold:
-                        ${Number(
-                            product.soldQuantity || 0
-                        )}
-                    </p>
+            </div>
 
-                    <p>
-                        Expiry:
-                        ${escapeHTML(
-                            product.expiryDate || "N/A"
-                        )}
-                    </p>
+            <div class="product-actions">
 
-                    <p>
-                        Status:
-                        <strong>
-                            ${getProductStatus(
-                                product
-                            )}
-                        </strong>
-                    </p>
+                <button
+                    type="button"
+                    onclick="openSellModal('${product.id}')">
+                    Sell
+                </button>
 
-                </div>
+                <button
+                    type="button"
+                    onclick="deleteProduct('${product.id}')">
+                    Delete
+                </button>
 
-                <div class="product-actions">
+            </div>
+        `;
 
-                    <button
-                        onclick="editProduct('${product.id}')"
-                    >
-                        Edit
-                    </button>
-
-                    <button
-                        onclick="openSellModal('${product.id}')"
-                    >
-                        Sell
-                    </button>
-
-                    <button
-                        onclick="deleteProduct('${product.id}')"
-                    >
-                        Delete
-                    </button>
-
-                </div>
-            `;
-
-
-            list.appendChild(card);
-        }
-    );
+        list.appendChild(card);
+    });
 }
 
+function setupProductSearch() {
 
-/* =====================================================
-   SEARCH
-===================================================== */
+    const input = $("searchInput");
 
-function setupSearch() {
-
-    const input =
-        document.getElementById(
-            "searchInput"
+    if (input) {
+        input.addEventListener(
+            "input",
+            renderProducts
         );
+    }
 
-    if (!input) return;
-
-    input.addEventListener(
-        "input",
-        renderProducts
-    );
-}
-
-
-/* =====================================================
-   FILTER
-===================================================== */
-
-function setupFilters() {
-
-    const buttons =
-        document.querySelectorAll(
-            ".filter-btn"
-        );
-
-    buttons.forEach(
-        function (button) {
+    document
+        .querySelectorAll(".filter-btn")
+        .forEach(button => {
 
             button.addEventListener(
                 "click",
-                function () {
-
-                    buttons.forEach(
-                        function (btn) {
-                            btn.classList.remove(
-                                "active"
-                            );
-                        }
-                    );
-
-                    button.classList.add(
-                        "active"
-                    );
+                function() {
 
                     currentFilter =
-                        button.dataset.filter ||
+                        this.dataset.filter ||
                         "all";
+
+                    document
+                        .querySelectorAll(
+                            ".filter-btn"
+                        )
+                        .forEach(b =>
+                            b.classList.remove(
+                                "active"
+                            )
+                        );
+
+                    this.classList.add("active");
 
                     renderProducts();
                 }
             );
+        });
+}
+
+/* =========================================================
+   SELL
+========================================================= */
+
+function openSellModal(productId) {
+
+    loadData();
+
+    const product =
+        products.find(
+            p => String(p.id) ===
+            String(productId)
+        );
+
+    if (!product) {
+        showToast(
+            "Product not found",
+            "error"
+        );
+        return;
+    }
+
+    const stock =
+        availableStock(product);
+
+    if (stock <= 0) {
+        showToast(
+            "No stock available",
+            "error"
+        );
+        return;
+    }
+
+    sellingProductId =
+        product.id;
+
+    setText(
+        "sellProductName",
+        product.name
+    );
+
+    setText(
+        "availableStock",
+        stock
+    );
+
+    const quantity =
+        $("sellQuantity");
+
+    if (quantity) {
+        quantity.value = 1;
+        quantity.max = stock;
+    }
+
+    const modal =
+        $("sellModal");
+
+    if (modal) {
+        modal.classList.remove("hidden");
+        modal.style.display = "flex";
+    }
+}
+
+function closeSellModal() {
+
+    const modal =
+        $("sellModal");
+
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.style.display = "none";
+    }
+
+    sellingProductId = null;
+}
+
+function setupSelling() {
+
+    const button =
+        $("confirmSellBtn");
+
+    if (!button) return;
+
+    button.addEventListener(
+        "click",
+        function() {
+
+            if (!sellingProductId) return;
+
+            loadData();
+
+            const product =
+                products.find(
+                    p => String(p.id) ===
+                    String(sellingProductId)
+                );
+
+            if (!product) return;
+
+            const quantity =
+                Number(
+                    getValue("sellQuantity")
+                );
+
+            const stock =
+                availableStock(product);
+
+            if (
+                !Number.isInteger(quantity) ||
+                quantity <= 0
+            ) {
+                showToast(
+                    "Enter valid quantity",
+                    "error"
+                );
+                return;
+            }
+
+            if (quantity > stock) {
+                showToast(
+                    "Not enough stock",
+                    "error"
+                );
+                return;
+            }
+
+            product.soldQuantity =
+                Number(product.soldQuantity || 0)
+                + quantity;
+
+            salesHistory.push({
+
+                id: generateId(),
+
+                productId: product.id,
+
+                productName:
+                    product.name,
+
+                code:
+                    product.code,
+
+                quantity:
+                    quantity,
+
+                amount:
+                    productPrice(product) *
+                    quantity,
+
+                date:
+                    new Date().toLocaleDateString(),
+
+                time:
+                    new Date().toLocaleTimeString()
+
+            });
+
+            saveProducts();
+            saveSales();
+
+            closeSellModal();
+
+            showToast(
+                "Sale completed successfully"
+            );
+
+            refreshAll();
         }
     );
 }
 
-
-/* =====================================================
+/* =========================================================
    DASHBOARD
-===================================================== */
+========================================================= */
 
-function updateDashboard() {
+function refreshDashboard() {
 
-    loadProducts();
+    loadData();
 
     let stock = 0;
-    let sold = 0;
+    let low = 0;
     let expiring = 0;
 
+    products.forEach(product => {
 
-    products.forEach(
-        function (product) {
+        const available =
+            availableStock(product);
 
-            stock +=
-                getAvailableStock(product);
+        stock += available;
 
-            sold +=
-                Number(
-                    product.soldQuantity || 0
-                );
-
-
-            const days =
-                getDaysUntilExpiry(
-                    product.expiryDate
-                );
-
-
-            if (
-                days >= 0 &&
-                days <= EXPIRY_ALERT_DAYS
-            ) {
-                expiring++;
-            }
+        if (
+            available > 0 &&
+            available <= LOW_STOCK_LIMIT
+        ) {
+            low++;
         }
+
+        const days =
+            expiryDays(
+                product.expiryDate
+            );
+
+        if (
+            days >= 0 &&
+            days <= EXPIRY_ALERT_DAYS
+        ) {
+            expiring++;
+        }
+    });
+
+    setText(
+        "totalProducts",
+        products.length
     );
 
+    setText(
+        "totalStock",
+        stock
+    );
 
-    const totalProducts =
-        document.getElementById(
-            "totalProducts"
-        );
+    setText(
+        "lowStock",
+        low
+    );
 
-    const totalStock =
-        document.getElementById(
-            "totalStock"
-        );
-
-    const totalSold =
-        document.getElementById(
-            "totalSold"
-        );
-
-    const expiringSoon =
-        document.getElementById(
-            "expiringSoon"
-        );
-
-
-    if (totalProducts) {
-        totalProducts.textContent =
-            products.length;
-    }
-
-    if (totalStock) {
-        totalStock.textContent =
-            stock;
-    }
-
-    if (totalSold) {
-        totalSold.textContent =
-            sold;
-    }
-
-    if (expiringSoon) {
-        expiringSoon.textContent =
-            expiring;
-    }
-
+    setText(
+        "expiringSoon",
+        expiring
+    );
 
     renderRecentProducts();
 }
 
-
-/* =====================================================
-   RECENT PRODUCTS
-===================================================== */
-
 function renderRecentProducts() {
 
     const container =
-        document.getElementById(
-            "recentProducts"
-        );
+        $("recentProducts");
 
     if (!container) return;
 
-    loadProducts();
-
     const recent =
         [...products]
-            .sort(
-                function (a, b) {
-
-                    return new Date(
-                        b.createdAt || 0
-                    ) -
-                    new Date(
-                        a.createdAt || 0
-                    );
-                }
-            )
+            .reverse()
             .slice(0, 5);
 
-
     container.innerHTML = "";
-
 
     if (recent.length === 0) {
 
@@ -1147,402 +999,143 @@ function renderRecentProducts() {
         return;
     }
 
+    recent.forEach(product => {
 
-    recent.forEach(
-        function (product) {
+        const item =
+            document.createElement("div");
 
-            const item =
-                document.createElement("div");
+        item.innerHTML = `
 
-            item.innerHTML = `
+            <strong>
+                ${escapeHTML(product.name)}
+            </strong>
 
-                <strong>
-                    ${escapeHTML(
-                        product.name
-                    )}
-                </strong>
+            <span>
+                Stock:
+                ${availableStock(product)}
+            </span>
 
-                <span>
-                    Stock:
-                    ${getAvailableStock(
-                        product
-                    )}
-                </span>
+            <span>
+                Expiry:
+                ${escapeHTML(product.expiryDate)}
+            </span>
+        `;
 
-                <span>
-                    Expiry:
-                    ${escapeHTML(
-                        product.expiryDate || "N/A"
-                    )}
-                </span>
-            `;
-
-            container.appendChild(item);
-        }
-    );
+        container.appendChild(item);
+    });
 }
 
-
-/* =====================================================
-   SELL MODAL
-===================================================== */
-
-function openSellModal(productId) {
-
-    loadProducts();
-
-    const product =
-        products.find(
-            function (item) {
-                return String(item.id) ===
-                    String(productId);
-            }
-        );
-
-    if (!product) return;
-
-
-    const stock =
-        getAvailableStock(product);
-
-
-    if (stock <= 0) {
-
-        showToast(
-            "No stock available",
-            "error"
-        );
-
-        return;
-    }
-
-
-    sellingProductId =
-        product.id;
-
-
-    const name =
-        document.getElementById(
-            "sellProductName"
-        );
-
-    const available =
-        document.getElementById(
-            "availableStock"
-        );
-
-    const quantity =
-        document.getElementById(
-            "sellQuantity"
-        );
-
-
-    if (name) {
-        name.textContent =
-            product.name;
-    }
-
-    if (available) {
-        available.textContent =
-            stock;
-    }
-
-    if (quantity) {
-
-        quantity.value = 1;
-        quantity.max = stock;
-    }
-
-
-    const modal =
-        document.getElementById(
-            "sellModal"
-        );
-
-    if (modal) {
-        modal.style.display = "flex";
-    }
-}
-
-
-function closeSellModal() {
-
-    const modal =
-        document.getElementById(
-            "sellModal"
-        );
-
-    if (modal) {
-        modal.style.display = "none";
-    }
-
-    sellingProductId = null;
-}
-
-
-/* =====================================================
-   CONFIRM SELL
-===================================================== */
-
-function setupSellButton() {
-
-    const button =
-        document.getElementById(
-            "confirmSellBtn"
-        );
-
-    if (!button) return;
-
-
-    button.addEventListener(
-        "click",
-        function () {
-
-            if (!sellingProductId) {
-                return;
-            }
-
-
-            loadProducts();
-
-
-            const product =
-                products.find(
-                    function (item) {
-
-                        return String(item.id) ===
-                            String(sellingProductId);
-                    }
-                );
-
-
-            if (!product) return;
-
-
-            const quantityInput =
-                document.getElementById(
-                    "sellQuantity"
-                );
-
-
-            const quantity =
-                Number(
-                    quantityInput
-                        ? quantityInput.value
-                        : 0
-                );
-
-
-            const stock =
-                getAvailableStock(product);
-
-
-            if (
-                !Number.isInteger(quantity) ||
-                quantity <= 0
-            ) {
-
-                showToast(
-                    "Enter a valid quantity",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            if (quantity > stock) {
-
-                showToast(
-                    "Not enough stock",
-                    "error"
-                );
-
-                return;
-            }
-
-
-            product.soldQuantity =
-                Number(
-                    product.soldQuantity || 0
-                ) + quantity;
-
-
-            salesHistory.push({
-
-                id: generateId(),
-
-                productId:
-                    product.id,
-
-                productName:
-                    product.name,
-
-                code:
-                    product.code || "",
-
-                quantity:
-                    quantity,
-
-                date:
-                    getToday(),
-
-                time:
-                    new Date()
-                        .toLocaleTimeString()
-            });
-
-
-            saveProducts();
-            saveSalesHistory();
-
-
-            closeSellModal();
-
-
-            showToast(
-                quantity +
-                " item(s) sold successfully"
-            );
-
-
-            refreshAll();
-        }
-    );
-}
-/* =====================================================
+/* =========================================================
    ALERTS
-===================================================== */
+========================================================= */
 
 function renderAlerts() {
 
     const list =
-        document.getElementById(
-            "alertList"
-        );
+        $("alertList");
 
     if (!list) return;
 
-    loadProducts();
-
-    const alerts = [];
-
-
-    products.forEach(
-        function (product) {
-
-            const stock =
-                getAvailableStock(product);
-
-            const days =
-                getDaysUntilExpiry(
-                    product.expiryDate
-                );
-
-
-            if (days < 0) {
-
-                alerts.push(
-                    "❌ " +
-                    product.name +
-                    " is expired."
-                );
-
-            }
-            else if (
-                days <= EXPIRY_ALERT_DAYS
-            ) {
-
-                alerts.push(
-                    "⏰ " +
-                    product.name +
-                    " expires in " +
-                    days +
-                    " day(s)."
-                );
-            }
-
-
-            if (
-                stock > 0 &&
-                stock <= LOW_STOCK_LIMIT
-            ) {
-
-                alerts.push(
-                    "⚠️ " +
-                    product.name +
-                    " has low stock. " +
-                    stock +
-                    " item(s) remaining."
-                );
-            }
-
-
-            if (stock <= 0) {
-
-                alerts.push(
-                    "🚫 " +
-                    product.name +
-                    " is out of stock."
-                );
-            }
-        }
-    );
-
+    loadData();
 
     list.innerHTML = "";
 
+    let count = 0;
 
-    if (alerts.length === 0) {
+    products.forEach(product => {
+
+        const stock =
+            availableStock(product);
+
+        const days =
+            expiryDays(
+                product.expiryDate
+            );
+
+        if (days < 0) {
+
+            addAlert(
+                list,
+                "❌ " +
+                product.name +
+                " is expired."
+            );
+
+            count++;
+        }
+
+        else if (
+            days >= 0 &&
+            days <= EXPIRY_ALERT_DAYS
+        ) {
+
+            addAlert(
+                list,
+                "⏰ " +
+                product.name +
+                " expires in " +
+                days +
+                " day(s)."
+            );
+
+            count++;
+        }
+
+        if (
+            stock > 0 &&
+            stock <= LOW_STOCK_LIMIT
+        ) {
+
+            addAlert(
+                list,
+                "⚠️ " +
+                product.name +
+                " has low stock. " +
+                stock +
+                " remaining."
+            );
+
+            count++;
+        }
+    });
+
+    if (count === 0) {
 
         list.innerHTML =
             "<p>No alerts 🎉</p>";
-
-        return;
     }
-
-
-    alerts.forEach(
-        function (message) {
-
-            const item =
-                document.createElement("div");
-
-            item.className =
-                "alert-item";
-
-            item.textContent =
-                message;
-
-            list.appendChild(item);
-        }
-    );
 }
 
+function addAlert(list, message) {
 
-/* =====================================================
-   SALES HISTORY
-===================================================== */
+    const item =
+        document.createElement("div");
+
+    item.className =
+        "alert-item";
+
+    item.textContent =
+        message;
+
+    list.appendChild(item);
+}
+
+/* =========================================================
+   HISTORY
+========================================================= */
 
 function renderHistory() {
 
     const list =
-        document.getElementById(
-            "historyList"
-        );
+        $("historyList");
 
     if (!list) return;
 
-    loadProducts();
-
-    const history =
-        [...salesHistory].reverse();
-
+    loadData();
 
     list.innerHTML = "";
 
-
-    if (history.length === 0) {
+    if (salesHistory.length === 0) {
 
         list.innerHTML =
             "<p>No sales history yet.</p>";
@@ -1550,9 +1143,9 @@ function renderHistory() {
         return;
     }
 
-
-    history.forEach(
-        function (sale) {
+    [...salesHistory]
+        .reverse()
+        .forEach(sale => {
 
             const item =
                 document.createElement("div");
@@ -1560,986 +1153,148 @@ function renderHistory() {
             item.className =
                 "history-item";
 
-
             item.innerHTML = `
 
                 <strong>
                     ${escapeHTML(
-                        sale.productName ||
-                        "Product"
+                        sale.productName
                     )}
                 </strong>
 
                 <p>
-                    Quantity Sold:
-                    ${Number(
-                        sale.quantity || 0
+                    Product ID:
+                    ${escapeHTML(
+                        sale.code
                     )}
                 </p>
 
                 <p>
-                    Code:
-                    ${escapeHTML(
-                        sale.code || "N/A"
-                    )}
+                    Quantity:
+                    ${sale.quantity}
+                </p>
+
+                <p>
+                    Amount:
+                    ₹${Number(
+                        sale.amount || 0
+                    ).toFixed(2)}
                 </p>
 
                 <p>
                     Date:
                     ${escapeHTML(
-                        sale.date || ""
+                        sale.date
                     )}
                 </p>
 
                 <p>
                     Time:
                     ${escapeHTML(
-                        sale.time || ""
+                        sale.time
                     )}
                 </p>
             `;
 
-
             list.appendChild(item);
-        }
-    );
+        });
 }
 
+/* =========================================================
+   DELETE PRODUCT
+========================================================= */
 
-/* =====================================================
-   QR / BARCODE SCANNER
-===================================================== */
+function deleteProduct(productId) {
 
-function startScanner() {
+    loadData();
 
-    const reader =
-        document.getElementById(
-            "reader"
+    const product =
+        products.find(
+            p => String(p.id) ===
+            String(productId)
         );
 
-    if (!reader) {
+    if (!product) return;
 
-        showToast(
-            "Scanner area not found",
-            "error"
+    if (
+        !confirm(
+            "Delete " +
+            product.name +
+            "?"
+        )
+    ) return;
+
+    products =
+        products.filter(
+            p =>
+            String(p.id) !==
+            String(productId)
         );
 
-        return;
-    }
+    saveProducts();
 
+    showToast(
+        "Product deleted"
+    );
 
-    if (scannerRunning) {
+    refreshAll();
+}
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+function enableNotifications() {
+
+    if (!("Notification" in window)) {
 
         showToast(
-            "Scanner is already running",
+            "Notifications are not supported",
             "warning"
         );
 
         return;
     }
 
+    Notification.requestPermission()
+        .then(permission => {
 
-    if (
-        typeof Html5Qrcode ===
-        "undefined"
-    ) {
+            if (permission === "granted") {
 
-        showToast(
-            "Scanner library not loaded",
-            "error"
-        );
-
-        return;
-    }
-
-
-    scanner =
-        new Html5Qrcode("reader");
-
-
-    const config = {
-
-        fps: 10,
-
-        qrbox: {
-            width: 250,
-            height: 250
-        },
-
-        formatsToSupport: [
-
-            Html5QrcodeSupportedFormats.QR_CODE,
-
-            Html5QrcodeSupportedFormats.CODE_128,
-
-            Html5QrcodeSupportedFormats.CODE_39,
-
-            Html5QrcodeSupportedFormats.CODE_93,
-
-            Html5QrcodeSupportedFormats.EAN_13,
-
-            Html5QrcodeSupportedFormats.EAN_8,
-
-            Html5QrcodeSupportedFormats.UPC_A,
-
-            Html5QrcodeSupportedFormats.UPC_E,
-
-            Html5QrcodeSupportedFormats.ITF
-        ]
-    };
-
-
-    scanner.start(
-
-        {
-            facingMode: "environment"
-        },
-
-        config,
-
-        function (decodedText) {
-
-            handleScannedCode(
-                decodedText
-            );
-        },
-
-        function () {
-            // Scanner is searching
-        }
-
-    )
-    .then(
-        function () {
-
-            scannerRunning = true;
-
-            const message =
-                document.getElementById(
-                    "scannerMessage"
+                showToast(
+                    "Notifications enabled"
                 );
 
-            if (message) {
-
-                message.textContent =
-                    "Scanner is running...";
-            }
-
-            showToast(
-                "Scanner started"
-            );
-        }
-    )
-    .catch(
-        function (error) {
-
-            console.error(error);
-
-            scanner = null;
-
-            scannerRunning = false;
-
-            showToast(
-                "Camera permission or camera error",
-                "error"
-            );
-        }
-    );
-}
-
-
-/* =====================================================
-   STOP SCANNER
-===================================================== */
-
-function stopScanner() {
-
-    if (
-        !scanner ||
-        !scannerRunning
-    ) {
-        return;
-    }
-
-
-    scanner.stop()
-        .then(
-            function () {
-
-                scanner.clear();
-
-                scanner = null;
-
-                scannerRunning = false;
-
-
-                const message =
-                    document.getElementById(
-                        "scannerMessage"
-                    );
-
-
-                if (message) {
-
-                    message.textContent =
-                        "Scanner stopped.";
-                }
-            }
-        )
-        .catch(
-            function (error) {
-
-                console.error(error);
-
-                scanner = null;
-
-                scannerRunning = false;
-            }
-        );
-}
-
-
-/* =====================================================
-   HANDLE SCANNED CODE
-===================================================== */
-
-async function handleScannedCode(
-    decodedText
-) {
-
-    const code =
-        String(
-            decodedText || ""
-        ).trim();
-
-
-    if (!code) return;
-
-
-    const scanText =
-        document.getElementById(
-            "scanText"
-        );
-
-
-    if (scanText) {
-
-        scanText.textContent =
-            "Scanned: " + code;
-    }
-
-
-    loadProducts();
-
-
-    /* Check local database first */
-
-    const localProduct =
-        products.find(
-            function (product) {
-
-                return String(
-                    product.code || ""
-                ).trim() === code;
-            }
-        );
-
-
-    if (localProduct) {
-
-        showScannedProduct(
-            localProduct
-        );
-
-        stopScanner();
-
-        return;
-    }
-
-
-    /* Check QR data */
-
-    const embedded =
-        parseScannedProduct(code);
-
-
-    if (embedded) {
-
-        showScannedProduct(
-            embedded
-        );
-
-        stopScanner();
-
-        return;
-    }
-
-
-    /* Search online */
-
-    showToast(
-        "Searching product details..."
-    );
-
-
-    const onlineProduct =
-        await lookupProductByBarcode(
-            code
-        );
-
-
-    stopScanner();
-
-
-    if (onlineProduct) {
-
-        showScannedProduct(
-            onlineProduct
-        );
-
-    }
-    else {
-
-        showUnknownScannedProduct(
-            code
-        );
-    }
-}
-
-
-/* =====================================================
-   PARSE QR DATA
-===================================================== */
-
-function parseScannedProduct(code) {
-
-    try {
-
-        const data =
-            JSON.parse(code);
-
-
-        if (
-            data &&
-            typeof data === "object" &&
-            (
-                data.name ||
-                data.productName
-            )
-        ) {
-
-            return {
-
-                id:
-                    generateId(),
-
-                name:
-                    data.name ||
-                    data.productName ||
-                    "Unknown Product",
-
-                code:
-                    data.code ||
-                    data.barcode ||
-                    "",
-
-                totalQuantity:
-                    Number(
-                        data.quantity ||
-                        data.totalQuantity ||
-                        0
-                    ),
-
-                soldQuantity:
-                    Number(
-                        data.soldQuantity || 0
-                    ),
-
-                expiryDate:
-                    data.expiryDate ||
-                    "",
-
-                brand:
-                    data.brand ||
-                    "",
-
-                category:
-                    data.category ||
-                    "",
-
-                quantity:
-                    data.packageQuantity ||
-                    data.quantityText ||
-                    "",
-
-                image:
-                    data.image ||
-                    "",
-
-                frontPhoto:
-                    data.frontPhoto ||
-                    "",
-
-                backPhoto:
-                    data.backPhoto ||
-                    "",
-
-                createdAt:
-                    new Date()
-                        .toISOString()
-            };
-        }
-
-    }
-    catch (error) {
-
-        // Not JSON
-    }
-
-
-    /* EXPIRY|Name|Code|Quantity|Expiry */
-
-    if (
-        code.startsWith(
-            "EXPIRY|"
-        )
-    ) {
-
-        const parts =
-            code.split("|");
-
-
-        if (parts.length >= 5) {
-
-            return {
-
-                id:
-                    generateId(),
-
-                name:
-                    parts[1] ||
-                    "Unknown Product",
-
-                code:
-                    parts[2] ||
-                    "",
-
-                totalQuantity:
-                    Number(parts[3]) || 0,
-
-                soldQuantity:
-                    0,
-
-                expiryDate:
-                    parts[4] ||
-                    "",
-
-                frontPhoto:
-                    "",
-
-                backPhoto:
-                    "",
-
-                createdAt:
-                    new Date()
-                        .toISOString()
-            };
-        }
-    }
-
-
-    return null;
-}
-/* =====================================================
-   ONLINE PRODUCT LOOKUP
-===================================================== */
-
-async function lookupProductByBarcode(
-    barcode
-) {
-
-    try {
-
-        const url =
-            "https://world.openfoodfacts.org/api/v2/product/" +
-            encodeURIComponent(barcode) +
-            ".json";
-
-
-        const response =
-            await fetch(url);
-
-
-        if (!response.ok) {
-            return null;
-        }
-
-
-        const data =
-            await response.json();
-
-
-        if (
-            !data ||
-            data.status !== 1 ||
-            !data.product
-        ) {
-
-            return null;
-        }
-
-
-        const product =
-            data.product;
-
-
-        const name =
-            product.product_name ||
-            product.product_name_en ||
-            product.generic_name ||
-            "";
-
-
-        if (!name) {
-            return null;
-        }
-
-
-        return {
-
-            id:
-                generateId(),
-
-            name:
-                name,
-
-            code:
-                barcode,
-
-            brand:
-                product.brands || "",
-
-            category:
-                product.categories || "",
-
-            quantity:
-                product.quantity || "",
-
-            totalQuantity:
-                0,
-
-            soldQuantity:
-                0,
-
-            expiryDate:
-                "",
-
-            image:
-                product.image_url ||
-                product.image_front_url ||
-                "",
-
-            frontPhoto:
-                product.image_front_url ||
-                "",
-
-            backPhoto:
-                "",
-
-            ingredients:
-                product.ingredients_text ||
-                "",
-
-            createdAt:
-                new Date()
-                    .toISOString()
-        };
-
-    }
-    catch (error) {
-
-        console.error(
-            "Product lookup error:",
-            error
-        );
-
-        return null;
-    }
-}
-
-
-/* =====================================================
-   SHOW SCANNED PRODUCT
-===================================================== */
-
-function showScannedProduct(
-    product
-) {
-
-    lastScannedProduct =
-        product;
-
-
-    const result =
-        document.getElementById(
-            "scanResult"
-        );
-
-
-    if (!result) return;
-
-
-    result.style.display =
-        "block";
-
-
-    result.innerHTML = `
-
-        <div class="scan-product-result">
-
-            <h3>
-                Product Found ✅
-            </h3>
-
-            <p>
-                <strong>
-                    Product Name:
-                </strong>
-
-                ${escapeHTML(
-                    product.name ||
-                    "Unknown"
-                )}
-            </p>
-
-            <p>
-                <strong>
-                    Barcode:
-                </strong>
-
-                ${escapeHTML(
-                    product.code ||
-                    "N/A"
-                )}
-            </p>
-
-            <p>
-                <strong>
-                    Brand:
-                </strong>
-
-                ${escapeHTML(
-                    product.brand ||
-                    "N/A"
-                )}
-            </p>
-
-            <p>
-                <strong>
-                    Category:
-                </strong>
-
-                ${escapeHTML(
-                    product.category ||
-                    "N/A"
-                )}
-            </p>
-
-            <p>
-                <strong>
-                    Package:
-                </strong>
-
-                ${escapeHTML(
-                    product.quantity ||
-                    "N/A"
-                )}
-            </p>
-
-            ${
-                product.image
-                ? `
-                    <img
-                        src="${escapeHTML(
-                            product.image
-                        )}"
-                        alt="Product"
-                        style="
-                            width:120px;
-                            max-height:120px;
-                            object-fit:contain;
-                        "
-                    >
-                  `
-                : ""
-            }
-
-            <br>
-
-            <button
-                onclick="
-                    saveLastScannedProduct()
-                "
-            >
-                Add To Inventory
-            </button>
-
-        </div>
-    `;
-}
-
-
-/* =====================================================
-   UNKNOWN PRODUCT
-===================================================== */
-
-function showUnknownScannedProduct(
-    code
-) {
-
-    lastScannedProduct = {
-
-        id:
-            generateId(),
-
-        name:
-            "",
-
-        code:
-            code,
-
-        brand:
-            "",
-
-        category:
-            "",
-
-        quantity:
-            "",
-
-        totalQuantity:
-            0,
-
-        soldQuantity:
-            0,
-
-        expiryDate:
-            "",
-
-        frontPhoto:
-            "",
-
-        backPhoto:
-            "",
-
-        createdAt:
-            new Date()
-                .toISOString()
-    };
-
-
-    const result =
-        document.getElementById(
-            "scanResult"
-        );
-
-
-    if (!result) return;
-
-
-    result.style.display =
-        "block";
-
-
-    result.innerHTML = `
-
-        <div class="scan-product-result">
-
-            <h3>
-                Product Not Found ⚠️
-            </h3>
-
-            <p>
-                Barcode:
-
-                <strong>
-                    ${escapeHTML(code)}
-                </strong>
-            </p>
-
-            <p>
-                Product information
-                was not found online.
-            </p>
-
-            <button
-                onclick="
-                    saveLastScannedProduct()
-                "
-            >
-                Add Product Manually
-            </button>
-
-        </div>
-    `;
-}
-
-
-/* =====================================================
-   ADD SCANNED PRODUCT
-===================================================== */
-
-function saveLastScannedProduct() {
-
-    if (!lastScannedProduct) {
-
-        showToast(
-            "No scanned product found",
-            "error"
-        );
-
-        return;
-    }
-
-
-    openProductModal();
-
-
-    setTimeout(
-        function () {
-
-            const name =
-                document.getElementById(
-                    "productName"
+            } else {
+
+                showToast(
+                    "Notification permission denied",
+                    "warning"
                 );
-
-            const code =
-                document.getElementById(
-                    "productCode"
-                );
-
-            const quantity =
-                document.getElementById(
-                    "totalQuantity"
-                );
-
-
-            if (name) {
-
-                name.value =
-                    lastScannedProduct.name ||
-                    "";
             }
-
-
-            if (code) {
-
-                code.value =
-                    lastScannedProduct.code ||
-                    "";
-            }
-
-
-            if (quantity) {
-
-                quantity.value =
-                    lastScannedProduct.totalQuantity ||
-                    0;
-            }
-
-        },
-        100
-    );
+        });
 }
 
+/* =========================================================
+   REFRESH EVERYTHING
+========================================================= */
 
-/* =====================================================
-   SCANNER BUTTONS
-===================================================== */
+function refreshAll() {
 
-function setupScannerButtons() {
+    loadData();
 
-    const start =
-        document.getElementById(
-            "startScannerBtn"
-        );
-
-    const stop =
-        document.getElementById(
-            "stopScannerBtn"
-        );
-
-
-    if (start) {
-
-        start.addEventListener(
-            "click",
-            startScanner
-        );
-    }
-
-
-    if (stop) {
-
-        stop.addEventListener(
-            "click",
-            stopScanner
-        );
-    }
+    refreshDashboard();
+    renderProducts();
+    renderAlerts();
+    renderHistory();
 }
 
-
-/* =====================================================
-   CLOSE MODAL OUTSIDE CLICK
-===================================================== */
-
-function setupModalClose() {
-
-    window.addEventListener(
-        "click",
-        function (event) {
-
-            const productModal =
-                document.getElementById(
-                    "productModal"
-                );
-
-            const sellModal =
-                document.getElementById(
-                    "sellModal"
-                );
-
-
-            if (
-                productModal &&
-                event.target === productModal
-            ) {
-
-                closeProductModal();
-            }
-
-
-            if (
-                sellModal &&
-                event.target === sellModal
-            ) {
-
-                closeSellModal();
-            }
-        }
-    );
-}
-
-
-/* =====================================================
-   FINAL INITIALIZATION
-===================================================== */
+/* =========================================================
+   INITIALIZE
+========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
-    function () {
-
-        loadProducts();
+    function() {
 
         setupLogin();
 
@@ -2549,34 +1304,39 @@ document.addEventListener(
 
         setupProductForm();
 
-        setupSellButton();
+        setupSelling();
 
-        setupSearch();
+        setupProductSearch();
 
-        setupFilters();
+        loadData();
 
-        setupScannerButtons();
-
-        setupModalClose();
-
+        /*
+          IMPORTANT:
+          Login is session based.
+          After closing browser/tab and starting
+          a new session, login is required again.
+        */
 
         const loggedInUser =
             sessionStorage.getItem(
                 "loggedInUser"
             );
 
+        const loggedInName =
+            sessionStorage.getItem(
+                "loggedInName"
+            );
 
         if (loggedInUser) {
 
-            showApp(
+            showApplication(
+                loggedInName ||
                 loggedInUser
             );
 
-        }
-        else {
+        } else {
 
-            showLogin();
+            showLoginPage();
         }
-
     }
 );

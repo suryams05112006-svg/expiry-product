@@ -20,8 +20,6 @@
 
     <link rel="manifest" href="manifest.json">
 
-    <!-- QR + BARCODE SCANNER -->
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
 </head>
 
@@ -341,19 +339,18 @@
                     </span>
 
                     <h2>
-                        Scan Barcode / QR
+                        Product Photo Scanner
                     </h2>
 
                     <p>
-                        Scan any supported product
-                        Barcode or QR code.
+                        Take front and back photos of the product.
                     </p>
 
                     <button
                         class="banner-button"
                         onclick="openPage('scanner')">
 
-                        📷 Scan Now
+                        📷 Open Camera
 
                         <span>
                             →
@@ -481,6 +478,25 @@
 
                 <button
                     class="quick-card"
+                    onclick="openPage('billing')">
+
+                    <div class="quick-icon green-icon">
+                        🧾
+                    </div>
+
+                    <strong>
+                        Bill Payment
+                    </strong>
+
+                    <small>
+                        Create customer bill
+                    </small>
+
+                </button>
+
+
+                <button
+                    class="quick-card"
                     onclick="enableNotifications()">
 
                     <div class="quick-icon green-icon">
@@ -540,35 +556,30 @@
 
 
         <!-- =================================================
-             BARCODE + QR SCANNER
+             FRONT + BACK PRODUCT CAMERA
         ================================================== -->
 
         <section
             id="scannerSection"
             class="page-section hidden">
 
-
             <div class="page-heading">
 
                 <span class="heading-label">
-                    BARCODE / QR
+                    PRODUCT PHOTO
                 </span>
 
                 <h1>
-                    Product Scanner
+                    Product Camera
                 </h1>
 
                 <p>
-                    Scan Barcode or QR code
-                    to get product information
+                    Capture front and back photos to get product details
                 </p>
 
             </div>
 
-
-
-            <div class="scanner-card">
-
+            <div class="scanner-card camera-product-card">
 
                 <div class="scanner-header">
 
@@ -577,84 +588,151 @@
                     </div>
 
                     <div>
-
                         <h2>
-                            Barcode & QR Scanner
+                            Front & Back Camera
                         </h2>
-
                         <p>
-                            Place Barcode or QR code
-                            inside the frame
+                            Take both sides of the product package
                         </p>
-
                     </div>
 
                 </div>
 
+                <div class="camera-grid">
 
+                    <div class="camera-box">
+                        <div class="camera-preview" id="frontPhotoPreview">
+                            <span>📷</span>
+                            <strong>Front Photo</strong>
+                            <small>Take front side photo</small>
+                        </div>
 
-                <!-- CAMERA -->
+                        <input
+                            type="file"
+                            id="frontPhotoInput"
+                            accept="image/*"
+                            capture="environment"
+                            hidden
+                        >
 
-                <div id="reader"></div>
+                        <button
+                            type="button"
+                            id="frontCameraBtn"
+                            class="primary-button">
+                            📷 Front Camera
+                        </button>
+                    </div>
 
+                    <div class="camera-box">
+                        <div class="camera-preview" id="backPhotoPreview">
+                            <span>📷</span>
+                            <strong>Back Photo</strong>
+                            <small>Take back side photo</small>
+                        </div>
 
+                        <input
+                            type="file"
+                            id="backPhotoInput"
+                            accept="image/*"
+                            capture="environment"
+                            hidden
+                        >
 
-                <div class="scanner-buttons">
-
-
-                    <button
-                        id="startScannerBtn"
-                        class="primary-button">
-
-                        📷 Start Scanner
-
-                    </button>
-
-
-                    <button
-                        id="stopScannerBtn"
-                        class="secondary-button">
-
-                        ⛔ Stop
-
-                    </button>
+                        <button
+                            type="button"
+                            id="backCameraBtn"
+                            class="primary-button">
+                            📷 Back Camera
+                        </button>
+                    </div>
 
                 </div>
 
+                <div class="scanner-buttons">
+                    <button
+                        type="button"
+                        id="clearPhotosBtn"
+                        class="secondary-button">
+                        🗑️ Clear Photos
+                    </button>
 
+                    <button
+                        type="button"
+                        id="processPhotosBtn"
+                        class="primary-button">
+                        🔍 Get Product Details
+                    </button>
+                </div>
 
                 <p
-                    id="scannerMessage"
+                    id="cameraMessage"
                     class="scanner-message">
-
-                    Click Start Scanner to scan
-                    Barcode or QR code.
-
+                    Take both front and back photos. Product details will be prepared automatically by the system.
                 </p>
 
             </div>
 
-
-
-            <!-- RESULT -->
-
             <div
-                id="scanResult"
+                id="photoProductResult"
                 class="scan-result hidden">
 
-
                 <div class="result-title">
-                    ✅ Scan Successful
+                    ✅ Product Details
                 </div>
 
+                <div class="photo-product-details">
 
-                <div id="scanText"></div>
+                    <div class="input-group">
+                        <label>Product Name</label>
+                        <input type="text" id="photoProductName" placeholder="Automatic product name">
+                    </div>
 
+                    <div class="input-group">
+                        <label>Product ID</label>
+                        <input type="text" id="photoProductId" placeholder="Automatic product ID">
+                    </div>
+
+                    <div class="two-inputs">
+                        <div class="input-group">
+                            <label>Brand</label>
+                            <input type="text" id="photoBrand" placeholder="Automatic brand">
+                        </div>
+
+                        <div class="input-group">
+                            <label>Batch Number</label>
+                            <input type="text" id="photoBatch" placeholder="Automatic batch number">
+                        </div>
+                    </div>
+
+                    <div class="two-inputs">
+                        <div class="input-group">
+                            <label>MRP</label>
+                            <input type="number" id="photoMrp" placeholder="Automatic MRP">
+                        </div>
+
+                        <div class="input-group">
+                            <label>Quantity</label>
+                            <input type="number" id="photoQuantity" placeholder="Automatic quantity">
+                        </div>
+                    </div>
+
+                    <div class="two-inputs">
+                        <div class="input-group">
+                            <label>Expiry Date <small>(Manual)</small></label>
+                            <input type="date" id="photoExpiryDate">
+                        </div>
+
+                        <div class="input-group">
+                            <label>Sold Quantity <small>(Manual)</small></label>
+                            <input type="number" id="photoSoldQuantity" min="0" value="0">
+                        </div>
+                    </div>
+
+                </div>
 
             </div>
 
         </section>
-
 
 
         <!-- =================================================
@@ -815,6 +893,124 @@
 
 
         <!-- =================================================
+             BILL PAYMENT
+        ================================================== -->
+
+        <section
+            id="billingSection"
+            class="page-section hidden">
+
+            <div class="page-heading">
+                <span class="heading-label">
+                    SALES
+                </span>
+
+                <h1>
+                    Bill Payment
+                </h1>
+
+                <p>
+                    Enter Product ID to automatically display product details
+                </p>
+            </div>
+
+            <div class="scanner-card billing-card">
+
+                <div class="scanner-header">
+                    <div class="scanner-icon">
+                        🧾
+                    </div>
+                    <div>
+                        <h2>
+                            Create Bill
+                        </h2>
+                        <p>
+                            Product information will be loaded automatically
+                        </p>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Product ID</label>
+                    <input
+                        type="text"
+                        id="billingProductId"
+                        placeholder="Enter Product ID"
+                        autocomplete="off"
+                    >
+                </div>
+
+                <div id="billingProductDetails" class="scan-result hidden">
+                    <div class="result-title">
+                        ✅ Product Found
+                    </div>
+
+                    <div class="two-inputs">
+                        <div class="input-group">
+                            <label>Product Name</label>
+                            <input type="text" id="billingProductName" readonly>
+                        </div>
+
+                        <div class="input-group">
+                            <label>Brand</label>
+                            <input type="text" id="billingBrand" readonly>
+                        </div>
+                    </div>
+
+                    <div class="two-inputs">
+                        <div class="input-group">
+                            <label>Available Stock</label>
+                            <input type="number" id="billingAvailableStock" readonly>
+                        </div>
+
+                        <div class="input-group">
+                            <label>MRP</label>
+                            <input type="number" id="billingPrice" readonly>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Quantity</label>
+                        <input
+                            type="number"
+                            id="billingQuantity"
+                            min="1"
+                            value="1"
+                        >
+                    </div>
+
+                    <div class="available-stock">
+                        <span>Total Amount</span>
+                        <strong id="billingTotalAmount">₹0</strong>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Payment Method</label>
+                        <select id="paymentMethod">
+                            <option value="cash">Cash</option>
+                            <option value="upi">UPI</option>
+                            <option value="card">Card</option>
+                        </select>
+                    </div>
+
+                    <button
+                        type="button"
+                        id="payBillBtn"
+                        class="save-button">
+                        💳 Pay & Generate Bill
+                    </button>
+                </div>
+
+                <p id="billingMessage" class="scanner-message">
+                    Enter a valid Product ID to load the product details.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
              HISTORY
         ================================================== -->
 
@@ -924,6 +1120,21 @@
 
             <small>
                 Alerts
+            </small>
+
+        </button>
+
+
+        <button
+            class="nav-btn"
+            data-page="billing">
+
+            <span>
+                🧾
+            </span>
+
+            <small>
+                Bill
             </small>
 
         </button>
