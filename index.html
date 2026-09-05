@@ -1,33 +1,23 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <meta name="theme-color"
-          content="#6c5ce7">
-
-    <meta name="description"
-          content="Wholesale Product Expiry Alert System">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#6c5ce7">
+    <meta name="description" content="Wholesale Product Expiry Alert System">
 
     <title>Expiry Alert</title>
 
     <link rel="stylesheet" href="style.css">
-
     <link rel="manifest" href="manifest.json">
-
-
 </head>
 
 <body>
 
-
 <!-- =====================================================
-     LOGIN
+     LOGIN PAGE
 ===================================================== -->
 
 <section id="loginPage" class="login-page">
@@ -37,9 +27,7 @@
 
     <div class="login-card">
 
-        <div class="brand-logo">
-            📦
-        </div>
+        <div class="brand-logo">📦</div>
 
         <h1>Expiry<span>Alert</span></h1>
 
@@ -48,28 +36,16 @@
         </p>
 
         <div class="welcome-box">
-
-            <strong>
-                Welcome Back 👋
-            </strong>
-
-            <small>
-                Login to manage your products
-            </small>
-
+            <strong>Welcome Back 👋</strong>
+            <small>Login to manage your products</small>
         </div>
-
 
         <form id="loginForm">
 
             <div class="input-group">
-
-                <label>
-                    Username
-                </label>
+                <label>Username</label>
 
                 <div class="input-wrapper">
-
                     <span>👤</span>
 
                     <input
@@ -79,17 +55,11 @@
                         autocomplete="username"
                         required
                     >
-
                 </div>
-
             </div>
 
-
             <div class="input-group">
-
-                <label>
-                    Password
-                </label>
+                <label>Password</label>
 
                 <div class="input-wrapper">
 
@@ -107,42 +77,26 @@
                         type="button"
                         class="password-eye"
                         id="togglePassword">
-
                         👁️
-
                     </button>
 
                 </div>
-
             </div>
 
-
-            <button
-                type="submit"
-                class="login-button">
-
-                <span>
-                    Login to Dashboard
-                </span>
-
-                <span>
-                    →
-                </span>
-
+            <button type="submit" class="login-button">
+                <span>Login to Dashboard</span>
+                <span>→</span>
             </button>
 
         </form>
 
-
         <div class="login-footer">
-
             <span>🔐</span>
 
             <p>
                 Your stock data is saved securely
                 on this device.
             </p>
-
         </div>
 
     </div>
@@ -150,15 +104,11 @@
 </section>
 
 
-
 <!-- =====================================================
-     APPLICATION
+     MAIN APPLICATION
 ===================================================== -->
 
-<div
-    id="appPage"
-    class="app-page hidden">
-
+<div id="appPage" class="app-page hidden">
 
     <!-- HEADER -->
 
@@ -166,41 +116,29 @@
 
         <div class="user-area">
 
-            <div class="user-avatar">
-                👤
-            </div>
+            <div class="user-avatar">👤</div>
 
             <div>
-
-                <small>
-                    Welcome back
-                </small>
+                <small>Welcome back</small>
 
                 <h2 id="welcomeUser">
                     User
                 </h2>
-
             </div>
 
         </div>
 
-
         <button
             id="notificationBtn"
             class="notification-button">
-
             🔔
-
             <span class="notification-dot"></span>
-
         </button>
 
     </header>
 
 
-
     <main>
-
 
         <!-- =================================================
              DASHBOARD
@@ -210,7 +148,6 @@
             id="dashboardSection"
             class="page-section">
 
-
             <div class="page-heading">
 
                 <div>
@@ -219,9 +156,7 @@
                         OVERVIEW
                     </span>
 
-                    <h1>
-                        Dashboard
-                    </h1>
+                    <h1>Dashboard</h1>
 
                     <p>
                         Manage your wholesale stock easily
@@ -232,94 +167,65 @@
             </div>
 
 
-
             <!-- STAT CARDS -->
 
             <div class="stats-grid">
 
-
                 <div class="stat-card purple-card">
 
-                    <div class="stat-icon">
-                        📦
-                    </div>
+                    <div class="stat-icon">📦</div>
 
                     <div>
-
-                        <span>
-                            Total Products
-                        </span>
+                        <span>Total Products</span>
 
                         <strong id="totalProducts">
                             0
                         </strong>
-
                     </div>
 
                 </div>
-
 
 
                 <div class="stat-card blue-card">
 
-                    <div class="stat-icon">
-                        📊
-                    </div>
+                    <div class="stat-icon">📊</div>
 
                     <div>
-
-                        <span>
-                            Available Stock
-                        </span>
+                        <span>Available Stock</span>
 
                         <strong id="totalStock">
                             0
                         </strong>
-
                     </div>
 
                 </div>
-
 
 
                 <div class="stat-card orange-card">
 
-                    <div class="stat-icon">
-                        ⚠️
-                    </div>
+                    <div class="stat-icon">⚠️</div>
 
                     <div>
-
-                        <span>
-                            Low Stock
-                        </span>
+                        <span>Low Stock</span>
 
                         <strong id="lowStock">
                             0
                         </strong>
-
                     </div>
 
                 </div>
 
 
-
                 <div class="stat-card red-card">
 
-                    <div class="stat-icon">
-                        ⏰
-                    </div>
+                    <div class="stat-icon">⏰</div>
 
                     <div>
-
-                        <span>
-                            Expiring Soon
-                        </span>
+                        <span>Expiring Soon</span>
 
                         <strong id="expiringSoon">
                             0
                         </strong>
-
                     </div>
 
                 </div>
@@ -327,8 +233,7 @@
             </div>
 
 
-
-            <!-- SCANNER BANNER -->
+            <!-- CAMERA BANNER -->
 
             <div class="qr-banner">
 
@@ -347,19 +252,17 @@
                     </p>
 
                     <button
+                        type="button"
                         class="banner-button"
                         onclick="openPage('scanner')">
 
                         📷 Open Camera
 
-                        <span>
-                            →
-                        </span>
+                        <span>→</span>
 
                     </button>
 
                 </div>
-
 
                 <div class="qr-decoration">
 
@@ -372,16 +275,13 @@
             </div>
 
 
-
             <!-- QUICK ACTIONS -->
 
             <div class="content-title">
 
                 <div>
 
-                    <h2>
-                        Quick Actions
-                    </h2>
+                    <h2>Quick Actions</h2>
 
                     <p>
                         Frequently used options
@@ -392,11 +292,10 @@
             </div>
 
 
-
             <div class="quick-grid">
 
-
                 <button
+                    type="button"
                     class="quick-card"
                     onclick="openAddProduct()">
 
@@ -404,19 +303,15 @@
                         ➕
                     </div>
 
-                    <strong>
-                        Add Product
-                    </strong>
+                    <strong>Add Product</strong>
 
-                    <small>
-                        Add new stock
-                    </small>
+                    <small>Add new stock</small>
 
                 </button>
 
 
-
                 <button
+                    type="button"
                     class="quick-card"
                     onclick="openPage('products')">
 
@@ -424,19 +319,15 @@
                         📦
                     </div>
 
-                    <strong>
-                        Products
-                    </strong>
+                    <strong>Products</strong>
 
-                    <small>
-                        View all products
-                    </small>
+                    <small>View all products</small>
 
                 </button>
 
 
-
                 <button
+                    type="button"
                     class="quick-card"
                     onclick="openPage('alerts')">
 
@@ -444,19 +335,15 @@
                         🔔
                     </div>
 
-                    <strong>
-                        Alerts
-                    </strong>
+                    <strong>Alerts</strong>
 
-                    <small>
-                        Check expiry alerts
-                    </small>
+                    <small>Check expiry alerts</small>
 
                 </button>
 
 
-
                 <button
+                    type="button"
                     class="quick-card"
                     onclick="openPage('history')">
 
@@ -464,19 +351,15 @@
                         📜
                     </div>
 
-                    <strong>
-                        History
-                    </strong>
+                    <strong>History</strong>
 
-                    <small>
-                        View sales history
-                    </small>
+                    <small>View sales history</small>
 
                 </button>
 
 
-
                 <button
+                    type="button"
                     class="quick-card"
                     onclick="openPage('billing')">
 
@@ -484,18 +367,15 @@
                         🧾
                     </div>
 
-                    <strong>
-                        Bill Payment
-                    </strong>
+                    <strong>Bill Payment</strong>
 
-                    <small>
-                        Create customer bill
-                    </small>
+                    <small>Create customer bill</small>
 
                 </button>
 
 
                 <button
+                    type="button"
                     class="quick-card"
                     onclick="enableNotifications()">
 
@@ -503,29 +383,22 @@
                         🔔
                     </div>
 
-                    <strong>
-                        Notifications
-                    </strong>
+                    <strong>Notifications</strong>
 
-                    <small>
-                        Enable alerts
-                    </small>
+                    <small>Enable alerts</small>
 
                 </button>
 
             </div>
 
 
-
-            <!-- RECENT -->
+            <!-- RECENT PRODUCTS -->
 
             <div class="content-title recent-title">
 
                 <div>
 
-                    <h2>
-                        Recent Products
-                    </h2>
+                    <h2>Recent Products</h2>
 
                     <p>
                         Recently added products
@@ -533,8 +406,8 @@
 
                 </div>
 
-
                 <button
+                    type="button"
                     class="view-button"
                     onclick="openPage('products')">
 
@@ -548,15 +421,13 @@
             <div
                 id="recentProducts"
                 class="product-list">
-
             </div>
 
         </section>
 
 
-
         <!-- =================================================
-             FRONT + BACK PRODUCT CAMERA
+             PRODUCT CAMERA
         ================================================== -->
 
         <section
@@ -579,6 +450,7 @@
 
             </div>
 
+
             <div class="scanner-card camera-product-card">
 
                 <div class="scanner-header">
@@ -588,145 +460,333 @@
                     </div>
 
                     <div>
+
                         <h2>
                             Front & Back Camera
                         </h2>
+
                         <p>
                             Take both sides of the product package
                         </p>
+
                     </div>
 
                 </div>
 
+
+                <!-- CAMERA GRID -->
+
                 <div class="camera-grid">
 
+
+                    <!-- FRONT CAMERA -->
+
                     <div class="camera-box">
-                        <div class="camera-preview" id="frontPhotoPreview">
+
+                        <div
+                            class="camera-preview"
+                            id="frontPhotoPreview">
+
                             <span>📷</span>
-                            <strong>Front Photo</strong>
-                            <small>Take front side photo</small>
+
+                            <strong>
+                                Front Photo
+                            </strong>
+
+                            <small>
+                                Take front side photo
+                            </small>
+
                         </div>
+
+
+                        <!-- IMPORTANT:
+                             Do NOT remove these inputs -->
 
                         <input
                             type="file"
                             id="frontPhotoInput"
                             accept="image/*"
                             capture="environment"
-                            hidden
+                            style="display:none;"
                         >
+
+
+                        <!-- Direct click trigger -->
 
                         <button
                             type="button"
                             id="frontCameraBtn"
-                            class="primary-button">
+                            class="primary-button"
+                            onclick="document.getElementById('frontPhotoInput').click();">
+
                             📷 Front Camera
+
                         </button>
+
                     </div>
 
+
+
+                    <!-- BACK CAMERA -->
+
                     <div class="camera-box">
-                        <div class="camera-preview" id="backPhotoPreview">
+
+                        <div
+                            class="camera-preview"
+                            id="backPhotoPreview">
+
                             <span>📷</span>
-                            <strong>Back Photo</strong>
-                            <small>Take back side photo</small>
+
+                            <strong>
+                                Back Photo
+                            </strong>
+
+                            <small>
+                                Take back side photo
+                            </small>
+
                         </div>
+
+
+                        <!-- IMPORTANT:
+                             Do NOT remove these inputs -->
 
                         <input
                             type="file"
                             id="backPhotoInput"
                             accept="image/*"
                             capture="environment"
-                            hidden
+                            style="display:none;"
                         >
+
+
+                        <!-- Direct click trigger -->
 
                         <button
                             type="button"
                             id="backCameraBtn"
-                            class="primary-button">
+                            class="primary-button"
+                            onclick="document.getElementById('backPhotoInput').click();">
+
                             📷 Back Camera
+
                         </button>
+
                     </div>
 
                 </div>
 
+
+                <!-- CAMERA BUTTONS -->
+
                 <div class="scanner-buttons">
+
                     <button
                         type="button"
                         id="clearPhotosBtn"
                         class="secondary-button">
+
                         🗑️ Clear Photos
+
                     </button>
+
 
                     <button
                         type="button"
                         id="processPhotosBtn"
                         class="primary-button">
+
                         🔍 Get Product Details
+
                     </button>
+
                 </div>
+
 
                 <p
                     id="cameraMessage"
                     class="scanner-message">
-                    Take both front and back photos. Product details will be prepared automatically by the system.
+
+                    Take both front and back photos.
+                    Photos will not be permanently saved.
+
                 </p>
 
             </div>
+
+
+            <!-- =================================================
+                 PRODUCT DETAILS RESULT
+            ================================================== -->
 
             <div
                 id="photoProductResult"
                 class="scan-result hidden">
 
+
                 <div class="result-title">
                     ✅ Product Details
                 </div>
 
+
                 <div class="photo-product-details">
 
-                    <div class="input-group">
-                        <label>Product Name</label>
-                        <input type="text" id="photoProductName" placeholder="Automatic product name">
-                    </div>
+
+                    <!-- PRODUCT NAME -->
 
                     <div class="input-group">
-                        <label>Product ID</label>
-                        <input type="text" id="photoProductId" placeholder="Automatic product ID">
+
+                        <label>
+                            Product Name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="photoProductName"
+                            placeholder="Product Name"
+                        >
+
                     </div>
+
+
+                    <!-- PRODUCT ID -->
+
+                    <div class="input-group">
+
+                        <label>
+                            Product ID
+                        </label>
+
+                        <input
+                            type="text"
+                            id="photoProductId"
+                            placeholder="Product ID"
+                        >
+
+                    </div>
+
+
+                    <!-- BRAND / BATCH -->
 
                     <div class="two-inputs">
-                        <div class="input-group">
-                            <label>Brand</label>
-                            <input type="text" id="photoBrand" placeholder="Automatic brand">
-                        </div>
 
                         <div class="input-group">
-                            <label>Batch Number</label>
-                            <input type="text" id="photoBatch" placeholder="Automatic batch number">
+
+                            <label>
+                                Brand
+                            </label>
+
+                            <input
+                                type="text"
+                                id="photoBrand"
+                                placeholder="Brand"
+                            >
+
                         </div>
+
+
+                        <div class="input-group">
+
+                            <label>
+                                Batch Number
+                            </label>
+
+                            <input
+                                type="text"
+                                id="photoBatch"
+                                placeholder="Batch Number"
+                            >
+
+                        </div>
+
                     </div>
+
+
+                    <!-- MRP / QUANTITY -->
 
                     <div class="two-inputs">
-                        <div class="input-group">
-                            <label>MRP</label>
-                            <input type="number" id="photoMrp" placeholder="Automatic MRP">
-                        </div>
 
                         <div class="input-group">
-                            <label>Quantity</label>
-                            <input type="number" id="photoQuantity" placeholder="Automatic quantity">
+
+                            <label>
+                                MRP
+                            </label>
+
+                            <input
+                                type="number"
+                                id="photoMrp"
+                                placeholder="MRP"
+                            >
+
                         </div>
+
+
+                        <div class="input-group">
+
+                            <label>
+                                Quantity
+                            </label>
+
+                            <input
+                                type="number"
+                                id="photoQuantity"
+                                placeholder="Quantity"
+                            >
+
+                        </div>
+
                     </div>
+
+
+                    <!-- EXPIRY / SOLD -->
 
                     <div class="two-inputs">
-                        <div class="input-group">
-                            <label>Expiry Date <small>(Manual)</small></label>
-                            <input type="date" id="photoExpiryDate">
-                        </div>
 
                         <div class="input-group">
-                            <label>Sold Quantity <small>(Manual)</small></label>
-                            <input type="number" id="photoSoldQuantity" min="0" value="0">
+
+                            <label>
+                                Expiry Date
+                                <small>(Manual)</small>
+                            </label>
+
+                            <input
+                                type="date"
+                                id="photoExpiryDate"
+                            >
+
                         </div>
+
+
+                        <div class="input-group">
+
+                            <label>
+                                Sold Quantity
+                                <small>(Manual)</small>
+                            </label>
+
+                            <input
+                                type="number"
+                                id="photoSoldQuantity"
+                                min="0"
+                                value="0"
+                            >
+
+                        </div>
+
                     </div>
+
+
+                    <!-- SAVE DETAILS ONLY -->
+
+                    <button
+                        type="button"
+                        id="savePhotoProductBtn"
+                        class="save-button">
+
+                        💾 Save Product Details
+
+                    </button>
 
                 </div>
 
@@ -742,7 +802,6 @@
         <section
             id="productsSection"
             class="page-section hidden">
-
 
             <div class="page-heading product-heading">
 
@@ -764,13 +823,11 @@
 
 
                 <button
+                    type="button"
                     class="add-product-button"
                     onclick="openAddProduct()">
 
-                    <span>
-                        +
-                    </span>
-
+                    <span>+</span>
                     Add Product
 
                 </button>
@@ -778,12 +835,9 @@
             </div>
 
 
-
             <div class="search-box">
 
-                <span>
-                    🔍
-                </span>
+                <span>🔍</span>
 
                 <input
                     type="text"
@@ -794,66 +848,52 @@
             </div>
 
 
-
             <div class="filter-row">
 
-
                 <button
+                    type="button"
                     class="filter-btn active"
                     data-filter="all">
-
                     All
-
                 </button>
 
-
                 <button
+                    type="button"
                     class="filter-btn"
                     data-filter="good">
-
                     Good
-
                 </button>
 
-
                 <button
+                    type="button"
                     class="filter-btn"
                     data-filter="soon">
-
                     Expiring
-
                 </button>
 
-
                 <button
+                    type="button"
                     class="filter-btn"
                     data-filter="expired">
-
                     Expired
-
                 </button>
 
-
                 <button
+                    type="button"
                     class="filter-btn"
                     data-filter="low">
-
                     Low Stock
-
                 </button>
 
             </div>
-
 
 
             <div
                 id="productList"
                 class="product-list">
-
             </div>
 
         </section>
-
 
 
         <!-- =================================================
@@ -863,7 +903,6 @@
         <section
             id="alertsSection"
             class="page-section hidden">
-
 
             <div class="page-heading">
 
@@ -885,15 +924,13 @@
             <div
                 id="alertList"
                 class="alert-list">
-
             </div>
 
         </section>
 
 
-
         <!-- =================================================
-             BILL PAYMENT
+             BILLING
         ================================================== -->
 
         <section
@@ -901,6 +938,7 @@
             class="page-section hidden">
 
             <div class="page-heading">
+
                 <span class="heading-label">
                     SALES
                 </span>
@@ -912,97 +950,199 @@
                 <p>
                     Enter Product ID to automatically display product details
                 </p>
+
             </div>
+
 
             <div class="scanner-card billing-card">
 
                 <div class="scanner-header">
+
                     <div class="scanner-icon">
                         🧾
                     </div>
+
                     <div>
+
                         <h2>
                             Create Bill
                         </h2>
+
                         <p>
                             Product information will be loaded automatically
                         </p>
+
                     </div>
+
                 </div>
 
+
                 <div class="input-group">
-                    <label>Product ID</label>
+
+                    <label>
+                        Product ID
+                    </label>
+
                     <input
                         type="text"
                         id="billingProductId"
                         placeholder="Enter Product ID"
                         autocomplete="off"
                     >
+
                 </div>
 
-                <div id="billingProductDetails" class="scan-result hidden">
+
+                <div
+                    id="billingProductDetails"
+                    class="scan-result hidden">
+
+
                     <div class="result-title">
                         ✅ Product Found
                     </div>
 
-                    <div class="two-inputs">
-                        <div class="input-group">
-                            <label>Product Name</label>
-                            <input type="text" id="billingProductName" readonly>
-                        </div>
-
-                        <div class="input-group">
-                            <label>Brand</label>
-                            <input type="text" id="billingBrand" readonly>
-                        </div>
-                    </div>
 
                     <div class="two-inputs">
-                        <div class="input-group">
-                            <label>Available Stock</label>
-                            <input type="number" id="billingAvailableStock" readonly>
-                        </div>
 
                         <div class="input-group">
-                            <label>MRP</label>
-                            <input type="number" id="billingPrice" readonly>
+
+                            <label>
+                                Product Name
+                            </label>
+
+                            <input
+                                type="text"
+                                id="billingProductName"
+                                readonly
+                            >
+
                         </div>
+
+
+                        <div class="input-group">
+
+                            <label>
+                                Brand
+                            </label>
+
+                            <input
+                                type="text"
+                                id="billingBrand"
+                                readonly
+                            >
+
+                        </div>
+
                     </div>
+
+
+                    <div class="two-inputs">
+
+                        <div class="input-group">
+
+                            <label>
+                                Available Stock
+                            </label>
+
+                            <input
+                                type="number"
+                                id="billingAvailableStock"
+                                readonly
+                            >
+
+                        </div>
+
+
+                        <div class="input-group">
+
+                            <label>
+                                MRP
+                            </label>
+
+                            <input
+                                type="number"
+                                id="billingPrice"
+                                readonly
+                            >
+
+                        </div>
+
+                    </div>
+
 
                     <div class="input-group">
-                        <label>Quantity</label>
+
+                        <label>
+                            Quantity
+                        </label>
+
                         <input
                             type="number"
                             id="billingQuantity"
                             min="1"
                             value="1"
                         >
+
                     </div>
+
 
                     <div class="available-stock">
-                        <span>Total Amount</span>
-                        <strong id="billingTotalAmount">₹0</strong>
+
+                        <span>
+                            Total Amount
+                        </span>
+
+                        <strong id="billingTotalAmount">
+                            ₹0
+                        </strong>
+
                     </div>
 
+
                     <div class="input-group">
-                        <label>Payment Method</label>
+
+                        <label>
+                            Payment Method
+                        </label>
+
                         <select id="paymentMethod">
-                            <option value="cash">Cash</option>
-                            <option value="upi">UPI</option>
-                            <option value="card">Card</option>
+
+                            <option value="cash">
+                                Cash
+                            </option>
+
+                            <option value="upi">
+                                UPI
+                            </option>
+
+                            <option value="card">
+                                Card
+                            </option>
+
                         </select>
+
                     </div>
+
 
                     <button
                         type="button"
                         id="payBillBtn"
                         class="save-button">
+
                         💳 Pay & Generate Bill
+
                     </button>
+
                 </div>
 
-                <p id="billingMessage" class="scanner-message">
+
+                <p
+                    id="billingMessage"
+                    class="scanner-message">
+
                     Enter a valid Product ID to load the product details.
+
                 </p>
 
             </div>
@@ -1017,7 +1157,6 @@
         <section
             id="historySection"
             class="page-section hidden">
-
 
             <div class="page-heading">
 
@@ -1039,54 +1178,43 @@
             <div
                 id="historyList"
                 class="history-list">
-
             </div>
 
         </section>
 
-
     </main>
 
 
-
     <!-- =================================================
-         BOTTOM NAV
+         BOTTOM NAVIGATION
     ================================================== -->
 
     <nav class="bottom-nav">
 
-
         <button
+            type="button"
             class="nav-btn active"
             data-page="dashboard">
 
-            <span>
-                🏠
-            </span>
-
-            <small>
-                Home
-            </small>
+            <span>🏠</span>
+            <small>Home</small>
 
         </button>
 
 
         <button
+            type="button"
             class="nav-btn"
             data-page="scanner">
 
-            <span>
-                📷
-            </span>
-
-            <small>
-                Scan
-            </small>
+            <span>📷</span>
+            <small>Scan</small>
 
         </button>
 
 
         <button
+            type="button"
             class="nav-add"
             onclick="openAddProduct()">
 
@@ -1096,71 +1224,55 @@
 
 
         <button
+            type="button"
             class="nav-btn"
             data-page="products">
 
-            <span>
-                📦
-            </span>
-
-            <small>
-                Products
-            </small>
+            <span>📦</span>
+            <small>Products</small>
 
         </button>
 
 
         <button
+            type="button"
             class="nav-btn"
             data-page="alerts">
 
-            <span>
-                🔔
-            </span>
-
-            <small>
-                Alerts
-            </small>
+            <span>🔔</span>
+            <small>Alerts</small>
 
         </button>
 
 
         <button
+            type="button"
             class="nav-btn"
             data-page="billing">
 
-            <span>
-                🧾
-            </span>
-
-            <small>
-                Bill
-            </small>
+            <span>🧾</span>
+            <small>Bill</small>
 
         </button>
 
 
         <button
+            type="button"
             class="nav-btn"
             data-page="history">
 
-            <span>
-                📜
-            </span>
-
-            <small>
-                History
-            </small>
+            <span>📜</span>
+            <small>History</small>
 
         </button>
 
     </nav>
 
 
-
     <!-- LOGOUT -->
 
     <button
+        type="button"
         id="logoutBtn"
         class="logout-button">
 
@@ -1168,9 +1280,7 @@
 
     </button>
 
-
 </div>
-
 
 
 <!-- =====================================================
@@ -1181,12 +1291,9 @@
     id="productModal"
     class="modal hidden">
 
-
     <div class="modal-box">
 
-
         <div class="modal-header">
-
 
             <div>
 
@@ -1206,6 +1313,7 @@
 
 
             <button
+                type="button"
                 onclick="closeProductModal()"
                 class="close-button">
 
@@ -1216,9 +1324,7 @@
         </div>
 
 
-
         <form id="productForm">
-
 
             <input
                 type="hidden"
@@ -1242,7 +1348,6 @@
             </div>
 
 
-
             <div class="input-group">
 
                 <label>
@@ -1259,9 +1364,7 @@
             </div>
 
 
-
             <div class="two-inputs">
-
 
                 <div class="input-group">
 
@@ -1298,7 +1401,6 @@
             </div>
 
 
-
             <div class="input-group">
 
                 <label>
@@ -1312,7 +1414,6 @@
                 >
 
             </div>
-
 
 
             <button
@@ -1330,7 +1431,6 @@
 </div>
 
 
-
 <!-- =====================================================
      SELL MODAL
 ===================================================== -->
@@ -1339,12 +1439,9 @@
     id="sellModal"
     class="modal hidden">
 
-
     <div class="modal-box small-modal">
 
-
         <div class="modal-header">
-
 
             <div>
 
@@ -1364,6 +1461,7 @@
 
 
             <button
+                type="button"
                 onclick="closeSellModal()"
                 class="close-button">
 
@@ -1372,7 +1470,6 @@
             </button>
 
         </div>
-
 
 
         <div class="available-stock">
@@ -1386,7 +1483,6 @@
             </strong>
 
         </div>
-
 
 
         <div class="input-group">
@@ -1405,8 +1501,8 @@
         </div>
 
 
-
         <button
+            type="button"
             id="confirmSellBtn"
             class="save-button">
 
@@ -1417,7 +1513,6 @@
     </div>
 
 </div>
-
 
 
 <!-- =====================================================
@@ -1439,9 +1534,227 @@
 </div>
 
 
+<!-- =====================================================
+     SCRIPT
+===================================================== -->
 
 <script src="script.js"></script>
 
-</body>
 
+<!-- =====================================================
+     CAMERA FALLBACK SCRIPT
+     
+     This guarantees that clicking the camera buttons
+     opens the corresponding camera/file input.
+===================================================== -->
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const frontButton =
+        document.getElementById("frontCameraBtn");
+
+    const backButton =
+        document.getElementById("backCameraBtn");
+
+    const frontInput =
+        document.getElementById("frontPhotoInput");
+
+    const backInput =
+        document.getElementById("backPhotoInput");
+
+
+    /*
+     * FRONT CAMERA
+     */
+
+    if (frontButton && frontInput) {
+
+        frontButton.addEventListener("click", function (event) {
+
+            event.preventDefault();
+
+            frontInput.click();
+
+        });
+
+    }
+
+
+    /*
+     * BACK CAMERA
+     */
+
+    if (backButton && backInput) {
+
+        backButton.addEventListener("click", function (event) {
+
+            event.preventDefault();
+
+            backInput.click();
+
+        });
+
+    }
+
+
+    /*
+     * FRONT PHOTO SELECTED
+     */
+
+    if (frontInput) {
+
+        frontInput.addEventListener("change", function () {
+
+            if (this.files && this.files.length > 0) {
+
+                const preview =
+                    document.getElementById("frontPhotoPreview");
+
+                if (preview) {
+
+                    preview.innerHTML =
+                        "<span>✅</span>" +
+                        "<strong>Front Photo Ready</strong>" +
+                        "<small>Photo captured successfully</small>";
+
+                }
+
+                const message =
+                    document.getElementById("cameraMessage");
+
+                if (message) {
+
+                    message.textContent =
+                        "Front photo captured. Now take the back photo.";
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /*
+     * BACK PHOTO SELECTED
+     */
+
+    if (backInput) {
+
+        backInput.addEventListener("change", function () {
+
+            if (this.files && this.files.length > 0) {
+
+                const preview =
+                    document.getElementById("backPhotoPreview");
+
+                if (preview) {
+
+                    preview.innerHTML =
+                        "<span>✅</span>" +
+                        "<strong>Back Photo Ready</strong>" +
+                        "<small>Photo captured successfully</small>";
+
+                }
+
+                const message =
+                    document.getElementById("cameraMessage");
+
+                if (message) {
+
+                    message.textContent =
+                        "Both photos captured. Click Get Product Details.";
+
+                }
+
+            }
+
+        });
+
+    }
+
+
+    /*
+     * CLEAR PHOTOS
+     *
+     * This only clears temporary browser input.
+     * The photos are NOT stored in the database.
+     */
+
+    const clearButton =
+        document.getElementById("clearPhotosBtn");
+
+    if (clearButton) {
+
+        clearButton.addEventListener("click", function () {
+
+            if (frontInput) {
+                frontInput.value = "";
+            }
+
+            if (backInput) {
+                backInput.value = "";
+            }
+
+
+            const frontPreview =
+                document.getElementById("frontPhotoPreview");
+
+            const backPreview =
+                document.getElementById("backPhotoPreview");
+
+
+            if (frontPreview) {
+
+                frontPreview.innerHTML =
+                    "<span>📷</span>" +
+                    "<strong>Front Photo</strong>" +
+                    "<small>Take front side photo</small>";
+
+            }
+
+
+            if (backPreview) {
+
+                backPreview.innerHTML =
+                    "<span>📷</span>" +
+                    "<strong>Back Photo</strong>" +
+                    "<small>Take back side photo</small>";
+
+            }
+
+
+            const result =
+                document.getElementById("photoProductResult");
+
+            if (result) {
+
+                result.classList.add("hidden");
+
+            }
+
+
+            const message =
+                document.getElementById("cameraMessage");
+
+            if (message) {
+
+                message.textContent =
+                    "Take both front and back photos.";
+
+            }
+
+        });
+
+    }
+
+});
+
+</script>
+
+</body>
 </html>
+```
